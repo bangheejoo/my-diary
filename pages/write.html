@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>나만의 일기장</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- 헤더 -->
+    <header class="app-header">
+      <button class="btn-icon" id="backBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+        </svg>
+      </button>
+      <span class="logo" id="pageTitle">나만의 하루</span>
+      <button class="btn btn-sm btn-primary" id="saveBtn">기록하기</button>
+    </header>
+
+    <main class="main-content" style="padding:1rem;display:flex;flex-direction:column;gap:1.25rem">
+
+      <!-- 날짜 선택 -->
+      <div class="form-group">
+        <label class="form-label" for="recordDate">기록 날짜</label>
+        <input class="form-input" type="date" id="recordDate" />
+        <p class="err-msg"></p>
+      </div>
+
+      <!-- 공개 범위 -->
+      <div class="form-group">
+        <label class="form-label">공개 범위</label>
+        <div class="visibility-select">
+          <button type="button" class="visibility-btn selected" data-value="private">🔒 나만보기</button>
+          <button type="button" class="visibility-btn" data-value="friends">👥 친구공개</button>
+        </div>
+      </div>
+
+      <!-- 내용 -->
+      <div class="form-group" style="flex:1">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <label class="form-label" for="content">하루의 기록</label>
+          <span id="charCount" class="text-xs text-muted">0 / 1000</span>
+        </div>
+        <textarea class="form-textarea" id="content" placeholder="나만의 하루를 기록해 보세요" maxlength="1000" style="min-height:12rem"></textarea>
+        <p class="err-msg"></p>
+      </div>
+
+      <!-- 이미지 업로드 -->
+      <div class="form-group">
+        <label class="form-label">이미지 <span class="text-muted text-xs">(선택 · 최대 5MB)</span></label>
+
+        <!-- 업로드 영역 (이미지 없을 때) -->
+        <div class="image-upload-area" id="uploadArea">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+          </svg>
+          <p>클릭하여 이미지 추가하기</p>
+          <p class="text-xs" style="margin-top:0.25rem">JPG, PNG</p>
+        </div>
+        <input type="file" id="imageInput" accept="image/*" class="hidden" />
+
+        <!-- 이미지 미리보기 (이미지 있을 때) -->
+        <div class="image-preview hidden" id="imagePreview">
+          <img id="previewImg" src="" alt="미리보기" />
+          <button type="button" class="image-preview-remove" id="removeImageBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <p class="err-msg" id="imageErr"></p>
+      </div>
+
+      <!-- 삭제 버튼 (수정 모드에서만 표시) -->
+      <button type="button" class="btn btn-danger btn-full hidden" id="deleteBtn">
+        이 기록 삭제하기
+      </button>
+
+    </main>
+  </div>
+
+  <!-- 삭제 확인 모달 -->
+  <div class="modal-overlay hidden" id="deleteModal">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <p class="modal-title">기록을 삭제할까요?</p>
+      <p class="text-sm text-muted text-center" style="margin-bottom:1.25rem">삭제한 기록은 복구할 수 없어요.</p>
+      <div style="display:flex;flex-direction:column;gap:0.5rem">
+        <button class="btn btn-danger btn-lg btn-full" id="confirmDeleteBtn">삭제</button>
+        <button class="btn btn-outline btn-lg btn-full" id="cancelDeleteBtn">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script type="module" src="../js/posts/write.js"></script>
+</body>
+</html>

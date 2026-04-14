@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>나만의 일기장</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card">
+
+      <!-- 로고 -->
+      <div class="auth-logo">
+        <h1>나만의 일기장</h1>
+        <p>나만의 소중한 하루를 기록헤 보세요</p>
+      </div>
+
+      <!-- 로그인 폼 -->
+      <form class="auth-form" id="loginForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="email">이메일 (아이디)</label>
+          <input class="form-input" type="email" id="email" placeholder="이메일을 입력해 주세요" autocomplete="email" />
+          <p class="err-msg"></p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">비밀번호</label>
+          <div style="position:relative">
+            <input class="form-input" type="password" id="password" placeholder="비밀번호를 입력해 주세요" autocomplete="current-password" />
+            <button type="button" class="btn-icon" id="togglePw" style="position:absolute;right:0.4rem;top:50%;transform:translateY(-50%)">
+              <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </div>
+          <p class="err-msg"></p>
+        </div>
+
+        <div style="text-align:right">
+          <a href="pages/resetPassword.html" class="text-sm text-muted" style="text-decoration:none">비밀번호를 잊으셨나요?</a>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg btn-full" id="loginBtn">
+          로그인
+        </button>
+
+        <p class="text-center text-sm text-muted">
+          아직 계정이 없으신가요?
+          <a href="pages/signup.html" class="text-pink font-medium" style="text-decoration:none">가입하기</a>
+        </p>
+      </form>
+
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script type="module" src="js/auth/login.js"></script>
+</body>
+</html>
