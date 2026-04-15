@@ -5,6 +5,7 @@ import {
   deleteDoc,
   getDocs,
   getDoc,
+  getCountFromServer,
   query,
   where,
   orderBy,
@@ -18,6 +19,12 @@ export interface Comment {
   uid: string
   content: string
   createdAt?: unknown
+}
+
+export async function getCommentCount(postId: string): Promise<number> {
+  const q = query(collection(db, 'comments'), where('postId', '==', postId))
+  const snap = await getCountFromServer(q)
+  return snap.data().count
 }
 
 export async function getComments(postId: string): Promise<Comment[]> {

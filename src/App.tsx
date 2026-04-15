@@ -9,6 +9,7 @@ import MainPage from './pages/main/MainPage'
 import WritePage from './pages/write/WritePage'
 import FriendsPage from './pages/friends/FriendsPage'
 import MyPage from './pages/mypage/MyPage'
+import SettingsPage from './pages/settings/SettingsPage'
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="/write" element={<WritePage />} />
             <Route path="/friends" element={<FriendsPage />} />
             <Route path="/mypage" element={<MyPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

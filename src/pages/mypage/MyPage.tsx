@@ -259,6 +259,12 @@ export default function MyPage() {
     <div className="app-container">
       <header className="app-header">
         <span className="logo">내정보</span>
+        <button className="btn-icon" onClick={() => navigate('/settings')} title="설정">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+          </svg>
+        </button>
       </header>
 
       {/* 프로필 요약 */}
@@ -321,7 +327,7 @@ export default function MyPage() {
       <main className="main-content">
         {/* 프로필 탭 */}
         {tab === 'profile' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', marginTop: '1.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', margin: '2.5rem 0 2.5rem' }}>
             {/* 기본 정보 */}
             <div className="setting-section">
               <h3 className="setting-title">기본 정보</h3>
@@ -348,7 +354,7 @@ export default function MyPage() {
                 <input
                   className="form-input"
                   type="text"
-                  placeholder="새 닉네임 (2~12자)"
+                  placeholder="새 닉네임을 (2~12자) 입력해 주세요"
                   value={newNick}
                   onChange={e => { setNewNick(e.target.value); setNickStatus('idle'); setNickMsg('') }}
                   style={{ flex: 1 }}
@@ -359,9 +365,8 @@ export default function MyPage() {
                 </button>
               </div>
               {nickMsg && <p className="err-msg" style={{ color: nickStatus === 'ok' ? '#16a34a' : '#ef4444' }}>{nickMsg}</p>}
-              <button className="btn btn-primary btn-full" style={{ marginTop: '0.75rem' }}
-                onClick={handleNickSave} disabled={nickSaving}>
-                {nickSaving ? <><span className="spinner" /> 저장 중...</> : '닉네임 변경'}
+              <button className="btn btn-primary btn-full" onClick={handleNickSave} disabled={nickSaving}>
+                {nickSaving ? <><span className="spinner" /> 변경 중...</> : '변경하기'}
               </button>
             </div>
 
@@ -370,24 +375,24 @@ export default function MyPage() {
               <h3 className="setting-title">비밀번호 변경</h3>
               <div className="form-group">
                 <input className={`form-input${pwErrors.current ? ' input-error' : ''}`} type="password"
-                  placeholder="현재 비밀번호" value={pwForm.current}
+                  placeholder="현재 비밀번호를 입력해 주세요" value={pwForm.current}
                   onChange={e => { setPwForm(v => ({ ...v, current: e.target.value })); setPwErrors(v => ({ ...v, current: undefined })) }} />
                 {pwErrors.current && <p className="err-msg">{pwErrors.current}</p>}
               </div>
               <div className="form-group">
                 <input className={`form-input${pwErrors.next ? ' input-error' : ''}`} type="password"
-                  placeholder="새 비밀번호 (영문+숫자 8자 이상)" value={pwForm.next}
+                  placeholder="새 비밀번호를 (영문+숫자 8자 이상) 입력해 주세요" value={pwForm.next}
                   onChange={e => { setPwForm(v => ({ ...v, next: e.target.value })); setPwErrors(v => ({ ...v, next: undefined })) }} />
                 {pwErrors.next && <p className="err-msg">{pwErrors.next}</p>}
               </div>
               <div className="form-group">
                 <input className={`form-input${pwErrors.confirm ? ' input-error' : ''}`} type="password"
-                  placeholder="새 비밀번호 확인" value={pwForm.confirm}
+                  placeholder="새 비밀번호를 다시 한번 입력해 주세요" value={pwForm.confirm}
                   onChange={e => { setPwForm(v => ({ ...v, confirm: e.target.value })); setPwErrors(v => ({ ...v, confirm: undefined })) }} />
                 {pwErrors.confirm && <p className="err-msg">{pwErrors.confirm}</p>}
               </div>
               <button className="btn btn-primary btn-full" onClick={handlePwSave} disabled={pwSaving}>
-                {pwSaving ? <><span className="spinner" /> 변경 중...</> : '비밀번호 변경'}
+                {pwSaving ? <><span className="spinner" /> 변경 중...</> : '변경하기'}
               </button>
             </div>
           </div>
@@ -437,7 +442,7 @@ export default function MyPage() {
                     ) : (
                       <>
                         <p className="notif-item-text">
-                          <strong>{n.fromNickname}</strong>님이 내 기록에 반응했어요
+                          <strong>{n.fromNickname}</strong>님이 내 기록에 공감을 남겼어요
                           {n.reactionType === 'heart' && ' ❤️'}
                           {n.reactionType === 'funny' && ' 😄'}
                           {n.reactionType === 'sad' && ' 😢'}
@@ -476,7 +481,7 @@ export default function MyPage() {
                   <p className="user-name">{f.nickname}</p>
                   <p className="user-email">{f.email}</p>
                 </div>
-                <button className="btn btn-sm btn-danger" onClick={() => setShowRemoveModal(f)}>삭제</button>
+                <button className="btn btn-sm btn-danger" onClick={() => setShowRemoveModal(f)}>정리</button>
               </div>
             ))
           )
@@ -511,13 +516,13 @@ export default function MyPage() {
       {showRemoveModal && (
         <div className="modal-overlay" onClick={() => setShowRemoveModal(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <p className="modal-title">친구를 삭제할까요?</p>
-            <p className="modal-desc">상대방에게도 삭제돼요</p>
+            <p className="modal-title">친구를 정리할까요?</p>
+            <p className="modal-desc">상대방에게도 정리돼요</p>
             <div className="modal-actions">
               <button className="btn btn-outline" onClick={() => setShowRemoveModal(null)}>취소</button>
               <button className="btn btn-danger" onClick={() => handleRemoveFriend(showRemoveModal)}
                 disabled={removingUid === showRemoveModal.friendUid}>
-                {removingUid === showRemoveModal.friendUid ? <><span className="spinner" /> 삭제 중...</> : '삭제하기'}
+                {removingUid === showRemoveModal.friendUid ? <><span className="spinner" /> 정리 중...</> : '정리하기'}
               </button>
             </div>
           </div>

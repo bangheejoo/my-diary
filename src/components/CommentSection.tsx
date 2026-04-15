@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import type { Comment } from '../services/commentService'
-import { getComments, addComment, deleteComment } from '../services/commentService'
+import { getComments, getCommentCount, addComment, deleteComment } from '../services/commentService'
 import { getUserProfile } from '../services/authService'
 import { showToast } from '../utils/toast'
 
@@ -28,10 +28,15 @@ function timeAgo(ts: unknown): string {
 export default function CommentSection({ postId, postUid, currentUserUid }: Props) {
   const [open, setOpen] = useState(false)
   const [comments, setComments] = useState<CommentWithNick[]>([])
+  const [commentCount, setCommentCount] = useState<number>(0)
   const [loading, setLoading] = useState(false)
   const [input, setInput] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    getCommentCount(postId).then(setCommentCount).catch(() => {})
+  }, [postId])
 
   useEffect(() => {
     if (!open) return
@@ -65,8 +70,9 @@ export default function CommentSection({ postId, postUid, currentUserUid }: Prop
       await addComment(postId, currentUserUid, text)
       setInput('')
       await loadComments()
+      setCommentCount(prev => prev + 1)
     } catch {
-      showToast('댓글 등록에 실패했어요', 'error')
+      showToast('댓글 남기기에 실패했어요', 'error')
     } finally {
       setSubmitting(false)
     }
@@ -77,8 +83,9 @@ export default function CommentSection({ postId, postUid, currentUserUid }: Prop
     try {
       await deleteComment(commentId)
       setComments(prev => prev.filter(c => c.id !== commentId))
+      setCommentCount(prev => Math.max(0, prev - 1))
     } catch {
-      showToast('댓글 삭제에 실패했어요', 'error')
+      showToast('댓글 지우기에 실패했어요', 'error')
     }
   }
 
@@ -93,7 +100,7 @@ export default function CommentSection({ postId, postUid, currentUserUid }: Prop
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
         </svg>
-        <span>댓글 {comments.length > 0 ? comments.length : open ? '' : ''}</span>
+        <span>댓글{(open ? comments.length : commentCount) > 0 ? ` ${open ? comments.length : commentCount}개` : ''}</span>
         <svg
           xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
           strokeWidth={2} stroke="currentColor"
@@ -155,7 +162,7 @@ export default function CommentSection({ postId, postUid, currentUserUid }: Prop
               className="comment-submit"
               disabled={submitting || !input.trim()}
             >
-              {submitting ? <div className="spinner" style={{ width: '1rem', height: '1rem' }} /> : '등록'}
+              {submitting ? <div className="spinner" style={{ width: '1rem', height: '1rem' }} /> : '남기기'}
             </button>
           </form>
         </div>

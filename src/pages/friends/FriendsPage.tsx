@@ -302,7 +302,7 @@ export default function FriendsPage() {
         <div className="modal-overlay" style={{ alignItems: 'flex-start', paddingTop: '4rem' }} onClick={() => { setShowAddModal(false); setSearchQuery(''); setSearchResults([]) }}>
           <div className="modal" style={{ maxWidth: '28rem', maxHeight: '75dvh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <p className="modal-title" style={{ margin: 0 }}>친구추가</p>
+              <p className="modal-title" style={{ margin: 0 }}>친구찾기</p>
               <button
                 className="btn-icon"
                 onClick={() => { setShowAddModal(false); setSearchQuery(''); setSearchResults([]) }}
@@ -335,14 +335,14 @@ export default function FriendsPage() {
               {searchResults.map(({ user: u, status }) => {
                 const s = status as { status?: string; requesterId?: string; id?: string } | null
                 return (
-                  <div key={u.uid} className="user-item">
+                  <div key={u.uid} className="user-item" style={{padding: '0 0 1rem'}}>
                     <div className="user-avatar">{u.nickname[0]}</div>
                     <div className="user-info">
                       <p className="user-name">{u.nickname}</p>
                       <p className="user-email">{u.email}</p>
                     </div>
                     {!s ? (
-                      <button className="btn btn-sm btn-primary" onClick={() => handleRequest(u.uid)}>요청</button>
+                      <button className="btn btn-sm btn-danger" onClick={() => handleRequest(u.uid)}>요청</button>
                     ) : s.status === 'pending' ? (
                       s.requesterId === user?.uid
                         ? <button className="btn btn-sm btn-outline" disabled>요청됨</button>

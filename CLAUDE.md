@@ -79,15 +79,19 @@ const firebaseConfig = {
   : 댓글 삭제 가능 (수정은 불가)
   : 댓글이 달리면 알림함에 표시
   : 한 게시글에 댓글 갯수는 제한 없음
-- 게시글 이모지 반응하기 기능
-  : 좋아요/싫어요/슬퍼요/놀라워요 .... 같은 간단한 이모지로 반응 기록 가능
-  : 반응이 달리면 알림함에 표시
-  : 한 게시글에 이모지 반응은 사용자당 1번 가능
+- 게시글 이모지 공감하기 기능
+  : 좋아요/싫어요/슬퍼요/놀라워요 .... 같은 간단한 이모지로 공감 기록 가능
+  : 공감이 달리면 알림함에 표시
+  : 한 게시글에 이모지 공감은 사용자당 1번 가능
 - 프로필 사진 설정 기능
   : 내정보 화면에서 프로필 사진 설정 가능
   : 사진은 중앙에서부터 1:1비율 크롭하여 보여줌
   : 프로필 사진 선택하면 크게 확대해서 볼 수 있음
 - 로그아웃 기능
+- 내정보 우측상단에 설정 기능
+  : 테마 설정 (라이트/다크모드)
+  : 폰트크기 설정 (소/중/대)
+  : 계정 삭제
 
 ## 구조
 ├── index.html                      (Vite 진입점)
@@ -118,7 +122,7 @@ const firebaseConfig = {
     │   ├── GuestRoute.tsx          (비로그인 전용 라우트)
     │   ├── PostCard.tsx            (게시글 카드)
     │   ├── PrivateRoute.tsx        (로그인 전용 라우트)
-    │   └── ReactionBar.tsx         (이모지 반응)
+    │   └── ReactionBar.tsx         (이모지 공감)
     │
     ├── pages/
     │   ├── auth/
@@ -132,6 +136,7 @@ const firebaseConfig = {
     │   ├── write/
     │   │   └── WritePage.tsx       (기록 쓰기/수정/삭제)
     │   └── mypage/
+    │       ├── Setting.tsx
     │       └── MyPage.tsx          (내 정보/알림/친구관리)
     │
     ├── services/
@@ -141,7 +146,7 @@ const firebaseConfig = {
     │   ├── storageService.ts       (이미지 업로드)
     │   ├── friendService.ts        (친구 요청/수락/삭제)
     │   ├── commentService.ts       (댓글 CRUD)
-    │   └── reactionService.ts      (이모지 반응)
+    │   └── reactionService.ts      (이모지 공감)
     │
     └── utils/
         ├── formatDate.ts

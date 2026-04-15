@@ -16,7 +16,7 @@ export const REACTION_LIST: { type: ReactionType; emoji: string; label: string }
   { type: 'funny',     emoji: '😄',  label: '재밌어요' },
   { type: 'sad',       emoji: '😢',  label: '슬퍼요'  },
   { type: 'surprised', emoji: '😮',  label: '놀라워요' },
-  { type: 'cheer',     emoji: '👏',  label: '응원해요' },
+  { type: 'cheer',     emoji: '👏',  label: '축하해요' },
 ]
 
 export type ReactionMap = Record<ReactionType, string[]>
@@ -25,7 +25,7 @@ const EMPTY_MAP = (): ReactionMap => ({
   heart: [], funny: [], sad: [], surprised: [], cheer: [],
 })
 
-/** 게시글의 모든 반응 조회 — { type → uid[] } */
+/** 게시글의 모든 공감 조회 — { type → uid[] } */
 export async function getReactions(postId: string): Promise<ReactionMap> {
   const snap = await getDocs(collection(db, 'posts', postId, 'reactions'))
   const result = EMPTY_MAP()
@@ -36,7 +36,7 @@ export async function getReactions(postId: string): Promise<ReactionMap> {
   return result
 }
 
-/** 반응 설정 — type=null이면 내 반응 삭제 */
+/** 공감 설정 — type=null이면 내 공감 삭제 */
 export async function setReaction(
   postId: string,
   uid: string,

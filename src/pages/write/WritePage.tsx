@@ -81,7 +81,7 @@ export default function WritePage() {
 
     let valid = true
     if (!recordDate) { setDateError('날짜를 선택해 주세요'); valid = false }
-    else if (!isPastOrToday(recordDate)) { setDateError('오늘 이전 날짜만 선택할 수 있어요'); valid = false }
+    else if (!isPastOrToday(recordDate)) { setDateError('오늘 이전 날짜만 기록할 수 있어요'); valid = false }
     if (!content.trim()) { setContentError('내용을 입력해 주세요'); valid = false }
     if (!valid) return
 
@@ -90,7 +90,7 @@ export default function WritePage() {
       if (!isEdit) {
         const count = await getPostCountByDate(user!.uid, recordDate)
         if (count >= 3) {
-          setDateError('같은 날짜에는 최대 3개까지만 기록할 수 있어요')
+          setDateError('동일한 날짜에 최대 3개의 이야기만 기록할 수 있어요')
           setSaving(false)
           return
         }
@@ -114,7 +114,7 @@ export default function WritePage() {
           imageStoragePath: storagePath,
           oldImageStoragePath: imageRemoved || imageFile ? existingStoragePath : null,
         })
-        showToast('기록이 수정되었어요', 'success')
+        showToast('기록을 다듬었어요', 'success')
       } else {
         await createPost({
           uid: user!.uid,
@@ -124,11 +124,11 @@ export default function WritePage() {
           imageUrl,
           imageStoragePath: storagePath,
         })
-        showToast('기록이 저장되었어요', 'success')
+        showToast('기록을 남겼어요', 'success')
       }
       setTimeout(goBack, 600)
     } catch (err: unknown) {
-      const msg = (err as Error).message || '저장에 실패했어요'
+      const msg = (err as Error).message || '기록 남기기에 실패했어요'
       if (msg.includes('5MB')) setImageError(msg)
       else showToast(msg, 'error')
     } finally {
@@ -141,10 +141,10 @@ export default function WritePage() {
     setDeleting(true)
     try {
       await deletePost(editId)
-      showToast('기록이 삭제되었어요', 'success')
+      showToast('기록이 지워졌어요', 'success')
       setTimeout(goBack, 600)
     } catch {
-      showToast('삭제에 실패했어요', 'error')
+      showToast('기록 지우기에 실패했어요', 'error')
       setDeleting(false)
     }
   }
@@ -164,13 +164,21 @@ export default function WritePage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
         </button>
-        <span className="page-title">{isEdit ? '기록 수정하기' : '기록 쓰기'}</span>
+        <span className="page-title">{isEdit ? '기록 다듬기' : '기록 남기기'}</span>
         <button
-          className="btn btn-primary btn-sm"
+          className="btn-icon"
+          style={{ color: 'var(--pink)' }}
           onClick={handleSave}
           disabled={saving}
         >
-          {saving ? <span className="spinner" /> : isEdit ? '수정하기' : '기록하기'}
+          {saving
+            ? <span className="spinner" style={{ width: '1.25rem', height: '1.25rem' }} />
+            : (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            )
+          }
         </button>
       </header>
 
@@ -210,7 +218,7 @@ export default function WritePage() {
           <label className="form-label">내용</label>
           <textarea
             className={`form-input textarea${contentError ? ' input-error' : ''}`}
-            placeholder="오늘 하루를 기록해 보세요..."
+            placeholder="오늘 하루를 기록해 보세요"
             maxLength={MAX_CHARS}
             value={content}
             onChange={e => { setContent(e.target.value); setContentError('') }}
@@ -264,7 +272,7 @@ export default function WritePage() {
             className="btn btn-danger btn-full"
             onClick={() => setShowDeleteModal(true)}
           >
-            기록 삭제하기
+            기록 지우기
           </button>
         )}
       </main>
@@ -273,12 +281,12 @@ export default function WritePage() {
       {showDeleteModal && (
         <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <p className="modal-title">기록을 삭제할까요?</p>
-            <p className="modal-desc">삭제한 기록은 복구할 수 없어요</p>
+            <p className="modal-title">기록을 지울까요?</p>
+            <p className="modal-desc">지워버린 기록은 복구할 수 없어요</p>
             <div className="modal-actions">
               <button className="btn btn-outline" onClick={() => setShowDeleteModal(false)}>취소</button>
               <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
-                {deleting ? <><span className="spinner" /> 삭제 중...</> : '삭제하기'}
+                {deleting ? <><span className="spinner" /> 지우는 중...</> : '지우기'}
               </button>
             </div>
           </div>
