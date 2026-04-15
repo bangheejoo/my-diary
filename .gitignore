@@ -1,0 +1,51 @@
+# node modules
+node_modules/
+
+# build 결과물
+dist/
+build/
+
+# 환경 변수
+.env
+.env.*
+!.env.example
+
+# 로그 파일
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS 파일
+.DS_Store
+Thumbs.db
+
+# IDE / 에디터
+.vscode/
+.idea/
+
+# 캐시
+.cache/
+.parcel-cache/
+
+# 테스트 결과
+coverage/
+
+# 기타
+*.local
+
+# Vite
+.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# Firebase CLI
+.firebase/
+firebase-debug.log*
+ui-debug.log*
+firestore-debug.log*
+database-debug.log*
+
+# Claude Code
+.claude/

@@ -60,6 +60,68 @@ service cloud.firestore {
       );
     }
 
+    // ── reactions (posts/{postId}/reactions/{uid}) ──────────────
+    match /posts/{postId}/reactions/{uid} {
+      function parentPost() {
+        return get(/databases/$(database)/documents/posts/$(postId));
+      }
+      function canAccessPost() {
+        return isOwner(parentPost().data.uid) ||
+               (parentPost().data.visibility == 'friends' &&
+                isFriend(request.auth.uid, parentPost().data.uid));
+      }
+
+      // 읽기: 게시글에 접근 가능한 사용자
+      allow read: if isSignedIn() && canAccessPost();
+
+      // 작성/수정: 본인 문서(uid)에만, 유효한 type, 게시글 접근 권한
+      allow create, update: if isSignedIn()
+        && isOwner(uid)
+        && canAccessPost()
+        && request.resource.data.type in ['heart', 'funny', 'sad', 'surprised', 'cheer'];
+
+      // 삭제: 본인만
+      allow delete: if isSignedIn() && isOwner(uid);
+    }
+
+    // ── comments ────────────────────────────────────────────────
+    match /comments/{commentId} {
+      // 게시글 문서 조회 헬퍼
+      function commentPost() {
+        return get(/databases/$(database)/documents/posts/$(resource.data.postId));
+      }
+      function commentPostForCreate() {
+        return get(/databases/$(database)/documents/posts/$(request.resource.data.postId));
+      }
+
+      // 읽기: 게시글 작성자 본인 또는 게시글 작성자의 친구
+      allow read: if isSignedIn() && (
+        isOwner(commentPost().data.uid) ||
+        isFriend(request.auth.uid, commentPost().data.uid)
+      );
+
+      // 작성: 게시글 작성자 본인 또는 게시글 작성자의 친구
+      //        작성자 uid 일치, 내용 필수, postId 필수
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.content is string
+        && request.resource.data.content.size() > 0
+        && request.resource.data.postId is string
+        && (
+          isOwner(commentPostForCreate().data.uid) ||
+          isFriend(request.auth.uid, commentPostForCreate().data.uid)
+        );
+
+      // 삭제: 댓글 작성자 본인 또는 게시글 작성자 본인
+      allow delete: if isSignedIn() && (
+        isOwner(resource.data.uid) ||
+        isOwner(commentPost().data.uid)
+      );
+
+      // 수정 불가
+      allow update: if false;
+    }
+
     // ── friendships ─────────────────────────────────────────────
     match /friendships/{friendshipId} {
       // 생성: 로그인 + 본인이 requester
@@ -89,11 +151,10 @@ service cloud.firestore {
       // 읽기: 수신자 본인만
       allow read: if isSignedIn() && isOwner(resource.data.toUid);
 
-      // 수정(읽음 처리): 수신자 본인만
+      // 수정(읽음 처리): 수신자 본인만, read 필드만 허용
       allow update: if isSignedIn()
         && isOwner(resource.data.toUid)
-        && request.resource.data.keys().hasOnly(['read'])
-        || request.auth.uid in [resource.data.toUid, resource.data.fromUid];
+        && request.resource.data.keys().hasOnly(['read']);
 
       // 삭제 불가
       allow delete: if false;
