@@ -151,10 +151,10 @@ service cloud.firestore {
       // 읽기: 수신자 본인만
       allow read: if isSignedIn() && isOwner(resource.data.toUid);
 
-      // 수정(읽음 처리): 수신자 본인만, read 필드만 허용
+      // 수정(읽음 처리): 수신자 본인만, read 필드만 변경 허용
       allow update: if isSignedIn()
         && isOwner(resource.data.toUid)
-        && request.resource.data.keys().hasOnly(['read']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
 
       // 삭제 불가
       allow delete: if false;

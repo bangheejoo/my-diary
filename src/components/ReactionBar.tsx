@@ -106,7 +106,7 @@ export default function ReactionBar({ postId, currentUserUid, postOwnerUid }: Pr
         <div className="modal-overlay" style={{ zIndex: 200 }} onClick={e => { e.stopPropagation(); setShowDetail(false) }}>
           <div className="modal" style={{ maxWidth: '22rem' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <p className="modal-title" style={{ margin: 0 }}>공감한 사람</p>
+              <p className="modal-title" style={{ margin: 0 }}>공감한 친구</p>
               <button className="btn-icon" onClick={e => { e.stopPropagation(); setShowDetail(false) }}>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -120,7 +120,7 @@ export default function ReactionBar({ postId, currentUserUid, postOwnerUid }: Pr
                 return (
                   <div key={r.type}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--gray-500)', marginBottom: '0.35rem' }}>
-                      {r.emoji} {r.label} {uids.length}
+                      {r.emoji}
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                       {uids.map(uid => (

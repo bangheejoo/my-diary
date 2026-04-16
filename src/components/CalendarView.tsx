@@ -9,9 +9,26 @@ interface Props {
   posts: Post[]
   onDateSelect: (dateStr: string) => Promise<Post[]>
   readOnly?: boolean
+  currentUserUid?: string
 }
 
-export default function CalendarView({ posts, onDateSelect, readOnly = false }: Props) {
+function SkeletonCard() {
+  return (
+    <div className="post-card skeleton-card">
+      <div className="post-card-header">
+        <div className="skeleton" style={{ width: '6rem', height: '1rem', borderRadius: '0.375rem' }} />
+        <div className="skeleton" style={{ width: '4rem', height: '1.25rem', borderRadius: '1rem' }} />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem' }}>
+        <div className="skeleton" style={{ width: '100%', height: '0.875rem', borderRadius: '0.375rem' }} />
+        <div className="skeleton" style={{ width: '80%', height: '0.875rem', borderRadius: '0.375rem' }} />
+        <div className="skeleton" style={{ width: '55%', height: '0.875rem', borderRadius: '0.375rem' }} />
+      </div>
+    </div>
+  )
+}
+
+export default function CalendarView({ posts, onDateSelect, readOnly = false, currentUserUid }: Props) {
   const todayStr = today()
   const now = new Date()
 
@@ -113,11 +130,16 @@ export default function CalendarView({ posts, onDateSelect, readOnly = false }: 
         <div>
           <div className="section-header">{toKoreanDate(selected)}의 기록</div>
           {loadingDate ? (
-            <div className="loading-screen" style={{ minHeight: '6rem' }}><div className="spinner" /></div>
+            <>
+              <SkeletonCard />
+              <SkeletonCard />
+            </>
           ) : datePosts.length === 0 ? (
             <div className="empty-state"><p>이 날의 기록이 없어요</p></div>
           ) : (
-            datePosts.map(p => <PostCard key={p.id} post={p} readOnly={readOnly} />)
+            datePosts.map(p => (
+              <PostCard key={p.id} post={p} readOnly={readOnly} currentUserUid={currentUserUid} />
+            ))
           )}
         </div>
       )}

@@ -200,7 +200,7 @@ export default function MainPage() {
         )}
 
         {tab === 'calendar' && (
-          <CalendarView posts={allPosts} onDateSelect={handleDateSelect} />
+          <CalendarView posts={allPosts} onDateSelect={handleDateSelect} currentUserUid={user?.uid} />
         )}
       </main>
 

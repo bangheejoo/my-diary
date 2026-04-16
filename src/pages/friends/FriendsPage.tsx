@@ -18,6 +18,25 @@ import CommentSection from '../../components/CommentSection'
 
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토']
 
+function SkeletonFeedCard() {
+  return (
+    <div className="post-card skeleton-card">
+      <div className="post-card-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div className="skeleton" style={{ width: '1.75rem', height: '1.75rem', borderRadius: '50%' }} />
+          <div className="skeleton" style={{ width: '4rem', height: '0.875rem', borderRadius: '0.375rem' }} />
+        </div>
+        <div className="skeleton" style={{ width: '4rem', height: '1.25rem', borderRadius: '1rem' }} />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem' }}>
+        <div className="skeleton" style={{ width: '100%', height: '0.875rem', borderRadius: '0.375rem' }} />
+        <div className="skeleton" style={{ width: '80%', height: '0.875rem', borderRadius: '0.375rem' }} />
+        <div className="skeleton" style={{ width: '55%', height: '0.875rem', borderRadius: '0.375rem' }} />
+      </div>
+    </div>
+  )
+}
+
 interface FriendWithProfile extends Friendship {
   nickname: string
 }
@@ -48,6 +67,7 @@ export default function FriendsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<{ user: UserProfile; status: ReturnType<typeof getFriendshipStatus> extends Promise<infer T> ? T : never }[]>([])
   const [searching, setSearching] = useState(false)
+  const [searched, setSearched] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const friendUids = friends.map(f => f.friendUid)
@@ -119,6 +139,7 @@ export default function FriendsPage() {
     const q = searchQuery.trim()
     if (!q || !user) return
     setSearching(true)
+    setSearched(false)
     setSearchResults([])
     try {
       const users = await searchUser(q)
@@ -129,6 +150,7 @@ export default function FriendsPage() {
       showToast('검색 중 오류가 발생했어요', 'error')
     } finally {
       setSearching(false)
+      setSearched(true)
     }
   }
 
@@ -185,7 +207,13 @@ export default function FriendsPage() {
 
       <main className="main-content">
         {tab === 'feed' && (
-          feedLoading ? <div className="loading-screen"><div className="spinner" /></div> :
+          feedLoading ? (
+            <>
+              <SkeletonFeedCard />
+              <SkeletonFeedCard />
+              <SkeletonFeedCard />
+            </>
+          ) :
           !friendUids.length ? (
             <div className="empty-state">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -299,13 +327,13 @@ export default function FriendsPage() {
 
       {/* 친구 추가 모달 */}
       {showAddModal && (
-        <div className="modal-overlay" style={{ alignItems: 'flex-start', paddingTop: '4rem' }} onClick={() => { setShowAddModal(false); setSearchQuery(''); setSearchResults([]) }}>
+        <div className="modal-overlay" style={{ alignItems: 'flex-start', paddingTop: '4rem' }} onClick={() => { setShowAddModal(false); setSearchQuery(''); setSearchResults([]); setSearched(false) }}>
           <div className="modal" style={{ maxWidth: '28rem', maxHeight: '75dvh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <p className="modal-title" style={{ margin: 0 }}>친구찾기</p>
               <button
                 className="btn-icon"
-                onClick={() => { setShowAddModal(false); setSearchQuery(''); setSearchResults([]) }}
+                onClick={() => { setShowAddModal(false); setSearchQuery(''); setSearchResults([]); setSearched(false) }}
                 title="닫기"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -329,7 +357,7 @@ export default function FriendsPage() {
               </button>
             </div>
             <div>
-              {searchResults.length === 0 && !searching && searchQuery && (
+              {searchResults.length === 0 && !searching && searched && (
                 <p className="text-center text-sm text-muted" style={{ padding: '1rem' }}>검색 결과가 없어요</p>
               )}
               {searchResults.map(({ user: u, status }) => {

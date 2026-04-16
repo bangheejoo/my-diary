@@ -25,8 +25,8 @@ export interface Notification {
   id: string
   toUid: string
   fromUid: string
-  type: 'friendRequest' | 'friendAccepted' | 'comment' | 'reaction'
-  friendshipId: string
+  type: 'friendRequest' | 'friendAccepted' | 'comment' | 'reaction' | 'mention'
+  friendshipId?: string
   postId?: string
   reactionType?: string
   read: boolean
@@ -150,6 +150,19 @@ export async function getMyNotifications(uid: string): Promise<Notification[]> {
 
 export async function markNotificationRead(notifId: string) {
   await updateDoc(doc(db, 'notifications', notifId), { read: true })
+}
+
+export async function markAllNotificationsRead(uid: string) {
+  const q = query(
+    collection(db, 'notifications'),
+    where('toUid', '==', uid),
+    where('read', '==', false)
+  )
+  const snap = await getDocs(q)
+  if (snap.empty) return
+  const batch = writeBatch(db)
+  snap.docs.forEach(d => batch.update(d.ref, { read: true }))
+  await batch.commit()
 }
 
 export async function getFriendshipStatus(uid1: string, uid2: string) {

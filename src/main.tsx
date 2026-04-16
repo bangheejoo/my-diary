@@ -7,6 +7,10 @@ import App from './App'
 const savedFont = localStorage.getItem('fontScale') || 'md'
 document.documentElement.setAttribute('data-font', savedFont)
 
+// 저장된 테마 즉시 적용 (렌더링 전 — 깜빡임 방지)
+const savedTheme = localStorage.getItem('theme') || 'light'
+document.documentElement.setAttribute('data-theme', savedTheme)
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

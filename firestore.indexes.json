@@ -66,6 +66,14 @@
         { "fieldPath": "friendshipId", "order": "ASCENDING" },
         { "fieldPath": "toUid",        "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "toUid", "order": "ASCENDING" },
+        { "fieldPath": "read",  "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

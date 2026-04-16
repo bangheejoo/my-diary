@@ -6,16 +6,31 @@ import {
 } from '../../services/authService'
 import {
   getMyFriends, getMyNotifications, acceptFriendRequest, rejectFriendRequest,
-  removeFriend, markNotificationRead, getFriendshipStatus,
+  removeFriend, markNotificationRead, markAllNotificationsRead, getFriendshipStatus,
 } from '../../services/friendService'
 import type { Notification, Friendship } from '../../services/friendService'
 import { getUserProfile } from '../../services/authService'
+import { getPost } from '../../services/postService'
+import type { Post } from '../../services/postService'
 import { uploadProfilePhoto } from '../../services/storageService'
 import { isValidNickname, isValidPassword } from '../../utils/validation'
 import { showToast } from '../../utils/toast'
 import BottomNav from '../../components/BottomNav'
+import PostCard from '../../components/PostCard'
 
 type Tab = 'profile' | 'notifications' | 'friends'
+
+function SkeletonNotifItem() {
+  return (
+    <div className="notif-item skeleton-card">
+      <div className="skeleton" style={{ width: '2.25rem', height: '2.25rem', borderRadius: '50%', flexShrink: 0 }} />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div className="skeleton" style={{ width: '80%', height: '0.875rem', borderRadius: '0.375rem' }} />
+        <div className="skeleton" style={{ width: '35%', height: '0.75rem', borderRadius: '0.375rem' }} />
+      </div>
+    </div>
+  )
+}
 
 interface FriendWithProfile extends Friendship {
   nickname: string
@@ -68,6 +83,10 @@ export default function MyPage() {
   const [showRemoveModal, setShowRemoveModal] = useState<FriendWithProfile | null>(null)
   const [showPhotoModal, setShowPhotoModal] = useState(false)
 
+  // 게시글 모달 (알림 클릭 시)
+  const [postModal, setPostModal] = useState<Post | null>(null)
+  const [postModalLoading, setPostModalLoading] = useState(false)
+
   useEffect(() => {
     loadUnreadCount()
   }, [user])
@@ -91,12 +110,9 @@ export default function MyPage() {
     try {
       const ns = await getMyNotifications(user.uid)
       const profiles = await Promise.all(ns.map(n => getUserProfile(n.fromUid)))
-      setNotifs(ns.map((n, i) => ({ ...n, fromNickname: profiles[i]?.nickname || '알 수 없음' })))
-
-      // 모든 미읽음 알림 읽음 처리
-      const toMark = ns.filter(n => !n.read)
-      await Promise.all(toMark.map(n => markNotificationRead(n.id).catch(() => {})))
-      setUnreadCount(0)
+      const mapped = ns.map((n, i) => ({ ...n, fromNickname: profiles[i]?.nickname || '알 수 없음' }))
+      setNotifs(mapped)
+      setUnreadCount(mapped.filter(n => !n.read).length)
 
       // 친구 요청 알림 중 실제로 pending 상태인 것만 수락/거절 버튼 표시
       const friendReqNotifs = ns.filter(n => n.type === 'friendRequest')
@@ -106,7 +122,7 @@ export default function MyPage() {
       const pendingIds = new Set(
         friendReqNotifs
           .filter((_, i) => (statuses[i] as { status?: string } | null)?.status === 'pending')
-          .map(n => n.friendshipId)
+          .map(n => n.friendshipId ?? '')
       )
       setPendingFriendshipIds(pendingIds)
     } catch {
@@ -214,6 +230,28 @@ export default function MyPage() {
     }
   }
 
+  async function handleMarkRead(notifId: string) {
+    try {
+      await markNotificationRead(notifId)
+      setNotifs(prev => prev.map(n => n.id === notifId ? { ...n, read: true } : n))
+      setUnreadCount(prev => Math.max(0, prev - 1))
+    } catch (err) {
+      showToast('읽음 처리에 실패했어요', 'error')
+      console.error('markNotificationRead error:', err)
+    }
+  }
+
+  async function handleMarkAllRead() {
+    if (!user) return
+    try {
+      await markAllNotificationsRead(user.uid)
+      setNotifs(prev => prev.map(n => ({ ...n, read: true })))
+      setUnreadCount(0)
+    } catch {
+      showToast('전체 읽음 처리에 실패했어요', 'error')
+    }
+  }
+
   async function handleAccept(fid: string, fromUid: string) {
     try {
       await acceptFriendRequest(fid, fromUid)
@@ -245,6 +283,23 @@ export default function MyPage() {
     } finally {
       setRemovingUid(null)
       setShowRemoveModal(null)
+    }
+  }
+
+  async function handleNotifClick(n: Notification & { fromNickname: string }) {
+    if (!n.read) await handleMarkRead(n.id)
+    const navigable = (n.type === 'comment' || n.type === 'mention' || n.type === 'reaction') && n.postId
+    if (!navigable) return
+    setPostModalLoading(true)
+    setPostModal(null)
+    try {
+      const post = await getPost(n.postId!)
+      if (!post) { showToast('게시글을 찾을 수 없어요', 'error'); return }
+      setPostModal(post)
+    } catch {
+      showToast('게시글을 불러오지 못했어요', 'error')
+    } finally {
+      setPostModalLoading(false)
     }
   }
 
@@ -400,7 +455,15 @@ export default function MyPage() {
 
         {/* 알림 탭 */}
         {tab === 'notifications' && (
-          notifLoading ? <div className="loading-screen"><div className="spinner" /></div> :
+          notifLoading ? (
+            <>
+              <SkeletonNotifItem />
+              <SkeletonNotifItem />
+              <SkeletonNotifItem />
+              <SkeletonNotifItem />
+              <SkeletonNotifItem />
+            </>
+          ) :
           notifs.length === 0 ? (
             <div className="empty-state">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -409,57 +472,89 @@ export default function MyPage() {
               <p>알림이 없어요</p>
             </div>
           ) : (
-            notifs.map(n => {
-              const ts = n.createdAt as { toDate?: () => Date } | null
-              const timeText = ts?.toDate ? formatTime(ts.toDate()) : ''
-              return (
-                <div key={n.id} className={`notif-item${!n.read ? ' unread' : ''}`}>
-                  <div className="user-avatar" style={{ width: '2.25rem', height: '2.25rem', fontSize: '0.85rem', flexShrink: 0 }}>
-                    {n.fromNickname[0]}
-                  </div>
-                  <div className="notif-item-content">
-                    {n.type === 'friendRequest' ? (
-                      <>
-                        <p className="notif-item-text"><strong>{n.fromNickname}</strong>님이 친구 요청을 보냈어요</p>
-                        <p className="notif-item-time">{timeText}</p>
-                        {pendingFriendshipIds.has(n.friendshipId) && (
-                          <div className="notif-actions">
-                            <button className="btn btn-sm btn-primary" onClick={() => handleAccept(n.friendshipId, n.fromUid)}>수락</button>
-                            <button className="btn btn-sm btn-outline" onClick={() => handleReject(n.friendshipId)}>거절</button>
-                          </div>
-                        )}
-                      </>
-                    ) : n.type === 'friendAccepted' ? (
-                      <>
-                        <p className="notif-item-text"><strong>{n.fromNickname}</strong>님이 친구 요청을 수락했어요</p>
-                        <p className="notif-item-time">{timeText}</p>
-                      </>
-                    ) : n.type === 'comment' ? (
-                      <>
-                        <p className="notif-item-text"><strong>{n.fromNickname}</strong>님이 내 기록에 댓글을 달았어요</p>
-                        <p className="notif-item-time">{timeText}</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="notif-item-text">
-                          <strong>{n.fromNickname}</strong>님이 내 기록에 공감을 남겼어요
-                          {n.reactionType === 'heart' && ' ❤️'}
-                          {n.reactionType === 'funny' && ' 😄'}
-                          {n.reactionType === 'sad' && ' 😢'}
-                          {n.reactionType === 'surprised' && ' 😮'}
-                          {n.reactionType === 'cheer' && ' 👏'}
-                        </p>
-                        <p className="notif-item-time">{timeText}</p>
-                      </>
-                    )}
-                  </div>
-                  {/* 처리 완료 뱃지 (친구요청이 처리된 경우) */}
-                  {n.type === 'friendRequest' && !pendingFriendshipIds.has(n.friendshipId) && (
-                    <span className="badge badge-gray" style={{ flexShrink: 0, alignSelf: 'flex-start' }}>처리 완료</span>
-                  )}
+            <>
+              {unreadCount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0.5rem 0 0.25rem' }}>
+                  <button
+                    className="btn btn-sm btn-outline"
+                    style={{ fontSize: '0.78rem' }}
+                    onClick={handleMarkAllRead}
+                  >
+                    전체 읽음
+                  </button>
                 </div>
-              )
-            })
+              )}
+              {notifs.map(n => {
+                const ts = n.createdAt as { toDate?: () => Date } | null
+                const timeText = ts?.toDate ? formatTime(ts.toDate()) : ''
+                return (
+                  <div
+                    key={n.id}
+                    className={`notif-item${!n.read ? ' unread' : ''}`}
+                    style={{ cursor: (n.type === 'comment' || n.type === 'mention' || n.type === 'reaction') ? 'pointer' : (!n.read ? 'pointer' : undefined) }}
+                    onClick={() => handleNotifClick(n)}
+                  >
+                    <div className="user-avatar" style={{ width: '2.25rem', height: '2.25rem', fontSize: '0.85rem', flexShrink: 0 }}>
+                      {n.fromNickname[0]}
+                    </div>
+                    <div className="notif-item-content">
+                      {n.type === 'friendRequest' ? (
+                        <>
+                          <p className="notif-item-text"><strong>{n.fromNickname}</strong>님이 친구 요청을 보냈어요</p>
+                          <p className="notif-item-time">{timeText}</p>
+                          {n.friendshipId && pendingFriendshipIds.has(n.friendshipId) && (
+                            <div className="notif-actions" onClick={e => e.stopPropagation()}>
+                              <button className="btn btn-sm btn-primary" onClick={() => handleAccept(n.friendshipId!, n.fromUid)}>수락</button>
+                              <button className="btn btn-sm btn-outline" onClick={() => handleReject(n.friendshipId!)}>거절</button>
+                            </div>
+                          )}
+                        </>
+                      ) : n.type === 'friendAccepted' ? (
+                        <>
+                          <p className="notif-item-text"><strong>{n.fromNickname}</strong>님이 친구 요청을 수락했어요</p>
+                          <p className="notif-item-time">{timeText}</p>
+                        </>
+                      ) : n.type === 'comment' ? (
+                        <>
+                          <p className="notif-item-text"><strong>{n.fromNickname}</strong>님이 내 기록에 댓글을 달았어요</p>
+                          <p className="notif-item-time">{timeText}</p>
+                        </>
+                      ) : n.type === 'mention' ? (
+                        <>
+                          <p className="notif-item-text"><strong>{n.fromNickname}</strong>님이 댓글에서 나를 언급했어요</p>
+                          <p className="notif-item-time">{timeText}</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="notif-item-text">
+                            <strong>{n.fromNickname}</strong>님이 내 기록에 공감을 남겼어요
+                            {n.reactionType === 'heart' && ' ❤️'}
+                            {n.reactionType === 'funny' && ' 😄'}
+                            {n.reactionType === 'sad' && ' 😢'}
+                            {n.reactionType === 'surprised' && ' 😮'}
+                            {n.reactionType === 'cheer' && ' 👏'}
+                          </p>
+                          <p className="notif-item-time">{timeText}</p>
+                        </>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem', flexShrink: 0, alignSelf: 'flex-start' }}>
+                      {n.type === 'friendRequest' && !pendingFriendshipIds.has(n.friendshipId ?? '') && (
+                        <span className="badge badge-gray">처리 완료</span>
+                      )}
+                      {!n.read && (
+                        <span style={{ width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: 'var(--pink)', display: 'inline-block', marginTop: '0.2rem' }} title="읽지 않음" />
+                      )}
+                      {(n.type === 'comment' || n.type === 'mention' || n.type === 'reaction') && (
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" style={{ width: '0.9rem', height: '0.9rem', color: 'var(--gray-400)' }}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </>
           )
         )}
 
@@ -525,6 +620,52 @@ export default function MyPage() {
                 {removingUid === showRemoveModal.friendUid ? <><span className="spinner" /> 정리 중...</> : '정리하기'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 게시글 모달 (알림 클릭 시) */}
+      {(postModalLoading || postModal) && (
+        <div
+          className="modal-overlay"
+          onClick={() => { setPostModal(null); setPostModalLoading(false) }}
+          style={{ zIndex: 200, alignItems: 'flex-start', overflowY: 'auto', padding: '1.5rem 1rem' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', maxWidth: '480px', margin: '0 auto' }}
+          >
+            {/* 닫기 버튼 */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+              <button
+                onClick={() => { setPostModal(null); setPostModalLoading(false) }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: '2rem', height: '2rem', borderRadius: '50%', border: 'none',
+                  background: 'rgba(255,255,255,0.9)', color: '#333', cursor: 'pointer',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.2)', flexShrink: 0,
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" style={{ width: '1rem', height: '1rem' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {postModalLoading ? (
+              <div className="post-card skeleton-card">
+                <div className="post-card-header">
+                  <div className="skeleton" style={{ width: '6rem', height: '1rem', borderRadius: '0.375rem' }} />
+                  <div className="skeleton" style={{ width: '4rem', height: '1.25rem', borderRadius: '1rem' }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem' }}>
+                  <div className="skeleton" style={{ width: '100%', height: '0.875rem', borderRadius: '0.375rem' }} />
+                  <div className="skeleton" style={{ width: '80%', height: '0.875rem', borderRadius: '0.375rem' }} />
+                </div>
+              </div>
+            ) : postModal ? (
+              <PostCard post={postModal} readOnly currentUserUid={user?.uid} />
+            ) : null}
           </div>
         </div>
       )}
