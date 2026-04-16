@@ -34,8 +34,8 @@ service cloud.firestore {
       // 로그인한 사용자 모두 읽기 가능 (닉네임/이메일 검색용)
       allow read: if isSignedIn();
 
-      // 삭제 불가
-      allow delete: if false;
+      // 삭제: 본인만 (계정 삭제 시)
+      allow delete: if isSignedIn() && isOwner(uid);
     }
 
     // ── posts ───────────────────────────────────────────────────
@@ -80,8 +80,8 @@ service cloud.firestore {
         && canAccessPost()
         && request.resource.data.type in ['heart', 'funny', 'sad', 'surprised', 'cheer'];
 
-      // 삭제: 본인만
-      allow delete: if isSignedIn() && isOwner(uid);
+      // 삭제: 반응 작성자 본인 또는 게시글 작성자 (계정 삭제 시 포스트 오너가 서브컬렉션 정리)
+      allow delete: if isSignedIn() && (isOwner(uid) || isOwner(parentPost().data.uid));
     }
 
     // ── comments ────────────────────────────────────────────────
@@ -148,16 +148,16 @@ service cloud.firestore {
       // 생성: 로그인한 사용자 (friendService 에서 자동 생성)
       allow create: if isSignedIn();
 
-      // 읽기: 수신자 본인만
-      allow read: if isSignedIn() && isOwner(resource.data.toUid);
+      // 읽기: 수신자 본인 또는 발신자 본인 (계정 삭제 시 발신 알림 조회)
+      allow read: if isSignedIn() && (isOwner(resource.data.toUid) || isOwner(resource.data.fromUid));
 
       // 수정(읽음 처리): 수신자 본인만, read 필드만 변경 허용
       allow update: if isSignedIn()
         && isOwner(resource.data.toUid)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
 
-      // 삭제 불가
-      allow delete: if false;
+      // 삭제: 수신자 또는 발신자 본인 (계정 삭제 시)
+      allow delete: if isSignedIn() && (isOwner(resource.data.toUid) || isOwner(resource.data.fromUid));
     }
   }
 }

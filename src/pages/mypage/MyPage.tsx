@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import {
@@ -624,51 +625,85 @@ export default function MyPage() {
         </div>
       )}
 
-      {/* 게시글 모달 (알림 클릭 시) */}
-      {(postModalLoading || postModal) && (
-        <div
-          className="modal-overlay"
-          onClick={() => { setPostModal(null); setPostModalLoading(false) }}
-          style={{ zIndex: 200, alignItems: 'flex-start', overflowY: 'auto', padding: '1.5rem 1rem' }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: '480px', margin: '0 auto' }}
-          >
-            {/* 닫기 버튼 */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
-              <button
-                onClick={() => { setPostModal(null); setPostModalLoading(false) }}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  width: '2rem', height: '2rem', borderRadius: '50%', border: 'none',
-                  background: 'rgba(255,255,255,0.9)', color: '#333', cursor: 'pointer',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.2)', flexShrink: 0,
-                }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" style={{ width: '1rem', height: '1rem' }}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {postModalLoading ? (
-              <div className="post-card skeleton-card">
-                <div className="post-card-header">
-                  <div className="skeleton" style={{ width: '6rem', height: '1rem', borderRadius: '0.375rem' }} />
-                  <div className="skeleton" style={{ width: '4rem', height: '1.25rem', borderRadius: '1rem' }} />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem' }}>
-                  <div className="skeleton" style={{ width: '100%', height: '0.875rem', borderRadius: '0.375rem' }} />
-                  <div className="skeleton" style={{ width: '80%', height: '0.875rem', borderRadius: '0.375rem' }} />
-                </div>
-              </div>
-            ) : postModal ? (
-              <PostCard post={postModal} readOnly currentUserUid={user?.uid} />
-            ) : null}
-          </div>
-        </div>
-      )}
+      <PostModal
+        post={postModal}
+        loading={postModalLoading}
+        onClose={() => { setPostModal(null); setPostModalLoading(false) }}
+        currentUserUid={user?.uid}
+      />
     </div>
+  )
+}
+
+function PostModal({
+  post, loading, onClose, currentUserUid,
+}: {
+  post: Post | null
+  loading: boolean
+  onClose: () => void
+  currentUserUid?: string
+}) {
+  const modalRoot = document.getElementById('modal-root')
+  if (!loading && !post) return null
+  if (!modalRoot) return null
+  return createPortal(
+    <>
+      {/* 배경 딤 - 순수 시각 요소, 이벤트 차단 */}
+      <div
+        style={{
+          position: 'fixed', top: 0, right: 0, bottom: 0, left: 0,
+          zIndex: 9998,
+          backgroundColor: 'rgba(0,0,0,0.4)',
+          pointerEvents: 'none',
+        }}
+      />
+      {/* 콘텐츠 스크롤 영역 */}
+      <div
+        style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          overflowY: 'auto', padding: '1.5rem 1rem',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          pointerEvents: 'none',
+        }}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{ width: '100%', maxWidth: '480px', pointerEvents: 'auto' }}
+        >
+          {/* 닫기 버튼 */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+            <button
+              onClick={onClose}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '2rem', height: '2rem', borderRadius: '50%', border: 'none',
+                background: 'rgba(255,255,255,0.9)', color: '#333', cursor: 'pointer',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.2)', flexShrink: 0,
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" style={{ width: '1rem', height: '1rem' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="post-card skeleton-card">
+              <div className="post-card-header">
+                <div className="skeleton" style={{ width: '6rem', height: '1rem', borderRadius: '0.375rem' }} />
+                <div className="skeleton" style={{ width: '4rem', height: '1.25rem', borderRadius: '1rem' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem' }}>
+                <div className="skeleton" style={{ width: '100%', height: '0.875rem', borderRadius: '0.375rem' }} />
+                <div className="skeleton" style={{ width: '80%', height: '0.875rem', borderRadius: '0.375rem' }} />
+              </div>
+            </div>
+          ) : post ? (
+            <PostCard post={post} readOnly currentUserUid={currentUserUid} />
+          ) : null}
+        </div>
+      </div>
+    </>,
+    modalRoot,
   )
 }

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { deleteAccount } from '../../services/authService'
 import BottomNav from '../../components/BottomNav'
 
 type FontScale = 'sm' | 'md' | 'lg'
 type Theme = 'light' | 'dark'
+type DeleteStep = 'confirm' | 'password'
 
 const FONT_OPTIONS: { value: FontScale; label: string; previewSize: string }[] = [
   { value: 'sm', label: '작게', previewSize: '1.1rem' },
@@ -28,12 +30,19 @@ function applyTheme(theme: Theme) {
 
 export default function SettingsPage() {
   const navigate = useNavigate()
+
   const [fontScale, setFontScale] = useState<FontScale>(
     (localStorage.getItem('fontScale') as FontScale) || 'md'
   )
   const [theme, setTheme] = useState<Theme>(
     (localStorage.getItem('theme') as Theme) || 'light'
   )
+
+  // 계정 삭제 모달
+  const [deleteStep, setDeleteStep] = useState<DeleteStep | null>(null)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteError, setDeleteError] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   function handleFontChange(scale: FontScale) {
     setFontScale(scale)
@@ -43,6 +52,42 @@ export default function SettingsPage() {
   function handleThemeChange(t: Theme) {
     setTheme(t)
     applyTheme(t)
+  }
+
+  function openDeleteModal() {
+    setDeleteStep('confirm')
+    setDeletePassword('')
+    setDeleteError('')
+  }
+
+  function closeDeleteModal() {
+    setDeleteStep(null)
+    setDeletePassword('')
+    setDeleteError('')
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deletePassword.trim()) {
+      setDeleteError('비밀번호를 입력해 주세요')
+      return
+    }
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await deleteAccount(deletePassword)
+      localStorage.removeItem('theme')
+      localStorage.removeItem('fontScale')
+      navigate('/', { replace: true })
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        setDeleteError('비밀번호가 올바르지 않아요')
+      } else {
+        setDeleteError((err as Error).message || '계정 삭제에 실패했어요')
+      }
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -99,9 +144,76 @@ export default function SettingsPage() {
           </p>
         </div>
 
+        {/* 계정 */}
+        <div className="setting-section">
+          <h3 className="setting-title">계정</h3>
+          <p className="text-sm" style={{ color: 'var(--gray-400)', marginBottom: '0.75rem', lineHeight: 1.6 }}>
+            계정을 삭제하면 모든 기록, 사진, 친구 관계가 영구 삭제되며 복구할 수 없어요
+          </p>
+          <button
+            className="btn btn-danger btn-full"
+            onClick={openDeleteModal}
+            style={{ marginTop: '0.25rem' }}
+          >
+            계정 삭제
+          </button>
+        </div>
+
       </main>
 
       <BottomNav />
+
+      {/* 계정 삭제 모달 — 1단계: 경고 */}
+      {deleteStep === 'confirm' && (
+        <div className="modal-overlay" onClick={closeDeleteModal}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ef4444" style={{ width: '2.5rem', height: '2.5rem' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <p className="modal-title">계정을 삭제하시겠어요?</p>
+            </div>
+            <p className="modal-desc" style={{ textAlign: 'center', lineHeight: 1.6 }}>
+              모든 기록, 사진, 댓글, 친구 관계가<br />
+              <strong style={{ color: '#ef4444' }}>영구 삭제</strong>되며 복구할 수 없어요
+            </p>
+            <div className="modal-actions" style={{ marginTop: '1rem' }}>
+              <button className="btn btn-outline" onClick={closeDeleteModal}>취소</button>
+              <button className="btn btn-danger" onClick={() => setDeleteStep('password')}>계속하기</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 계정 삭제 모달 — 2단계: 비밀번호 확인 */}
+      {deleteStep === 'password' && (
+        <div className="modal-overlay" onClick={closeDeleteModal}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <p className="modal-title">비밀번호 확인</p>
+            <p className="modal-desc" style={{ marginBottom: '1rem' }}>
+              본인 확인을 위해 현재 비밀번호를 입력해 주세요
+            </p>
+            <div className="form-group">
+              <input
+                className={`form-input${deleteError ? ' input-error' : ''}`}
+                type="password"
+                placeholder="현재 비밀번호"
+                value={deletePassword}
+                onChange={e => { setDeletePassword(e.target.value); setDeleteError('') }}
+                onKeyDown={e => e.key === 'Enter' && handleDeleteConfirm()}
+                autoFocus
+              />
+              {deleteError && <p className="err-msg">{deleteError}</p>}
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn-outline" onClick={closeDeleteModal} disabled={deleting}>취소</button>
+              <button className="btn btn-danger" onClick={handleDeleteConfirm} disabled={deleting}>
+                {deleting ? <><span className="spinner" /> 삭제 중...</> : '삭제하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
