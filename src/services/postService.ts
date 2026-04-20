@@ -31,7 +31,8 @@ export interface Post {
   uid: string
   content: string
   recordDate: string
-  visibility: 'private' | 'friends'
+  visibility: 'private' | 'friends' | 'us'
+  targetUid: string | null
   imageUrl: string | null
   imageStoragePath: string | null
   createdAt?: unknown
@@ -43,13 +44,15 @@ export async function createPost({
   content,
   recordDate,
   visibility,
+  targetUid = null,
   imageUrl = null,
   imageStoragePath = null,
 }: {
   uid: string
   content: string
   recordDate: string
-  visibility: 'private' | 'friends'
+  visibility: 'private' | 'friends' | 'us'
+  targetUid?: string | null
   imageUrl?: string | null
   imageStoragePath?: string | null
 }): Promise<string> {
@@ -58,6 +61,7 @@ export async function createPost({
     content,
     recordDate,
     visibility,
+    targetUid: visibility === 'us' ? targetUid : null,
     imageUrl,
     imageStoragePath,
     createdAt: serverTimestamp(),
@@ -72,13 +76,15 @@ export async function updatePost(
     content,
     recordDate,
     visibility,
+    targetUid,
     imageUrl,
     imageStoragePath,
     oldImageStoragePath,
   }: {
     content: string
     recordDate: string
-    visibility: 'private' | 'friends'
+    visibility: 'private' | 'friends' | 'us'
+    targetUid?: string | null
     imageUrl?: string | null
     imageStoragePath?: string | null
     oldImageStoragePath?: string | null
@@ -91,6 +97,7 @@ export async function updatePost(
     content,
     recordDate,
     visibility,
+    targetUid: visibility === 'us' ? (targetUid ?? null) : null,
     imageUrl: imageUrl ?? null,
     imageStoragePath: imageStoragePath ?? null,
     updatedAt: serverTimestamp(),
@@ -163,7 +170,7 @@ export async function getMyPostsByDate(uid: string, dateStr: string): Promise<Po
   return snap.docs.map(d => ({ id: d.id, ...d.data() }) as Post)
 }
 
-export async function getFriendsPosts(friendUids: string[]): Promise<Post[]> {
+export async function getFriendsPosts(friendUids: string[], currentUserUid: string): Promise<Post[]> {
   if (!friendUids.length) return []
 
   const chunks: string[][] = []
@@ -172,6 +179,8 @@ export async function getFriendsPosts(friendUids: string[]): Promise<Post[]> {
   }
 
   const results: Post[] = []
+
+  // 친구랑보기 게시글
   for (const chunk of chunks) {
     const q = query(
       collection(db, 'posts'),
@@ -182,22 +191,48 @@ export async function getFriendsPosts(friendUids: string[]): Promise<Post[]> {
     snap.docs.forEach(d => results.push({ id: d.id, ...d.data() } as Post))
   }
 
+  // 우리만보기 게시글 (인덱스 미배포 시 무시하고 친구랑보기 결과만 반환)
+  try {
+    const usQ = query(
+      collection(db, 'posts'),
+      where('visibility', '==', 'us'),
+      where('targetUid', '==', currentUserUid)
+    )
+    const usSnap = await getDocs(usQ)
+    usSnap.docs.forEach(d => {
+      const post = { id: d.id, ...d.data() } as Post
+      if (friendUids.includes(post.uid)) results.push(post)
+    })
+  } catch { /* 인덱스 준비 전에는 친구랑보기 결과만 표시 */ }
+
   return results.sort((a, b) => b.recordDate.localeCompare(a.recordDate))
 }
 
-export async function getFriendPostsByUid(friendUid: string): Promise<Post[]> {
-  const q = query(
+export async function getFriendPostsByUid(friendUid: string, currentUserUid: string): Promise<Post[]> {
+  const friendsSnap = await getDocs(query(
     collection(db, 'posts'),
     where('uid', '==', friendUid),
     where('visibility', '==', 'friends')
-  )
-  const snap = await getDocs(q)
-  return snap.docs
-    .map(d => ({ id: d.id, ...d.data() }) as Post)
-    .sort((a, b) => b.recordDate.localeCompare(a.recordDate))
+  ))
+
+  const results: Post[] = []
+  friendsSnap.docs.forEach(d => results.push({ id: d.id, ...d.data() } as Post))
+
+  // 우리만보기 게시글 (인덱스 미배포 시 무시)
+  try {
+    const usSnap = await getDocs(query(
+      collection(db, 'posts'),
+      where('uid', '==', friendUid),
+      where('visibility', '==', 'us'),
+      where('targetUid', '==', currentUserUid)
+    ))
+    usSnap.docs.forEach(d => results.push({ id: d.id, ...d.data() } as Post))
+  } catch { /* 인덱스 준비 전에는 친구랑보기 결과만 표시 */ }
+
+  return results.sort((a, b) => b.recordDate.localeCompare(a.recordDate))
 }
 
-export async function getFriendPostsByDate(friendUids: string[], dateStr: string): Promise<Post[]> {
+export async function getFriendPostsByDate(friendUids: string[], dateStr: string, currentUserUid: string): Promise<Post[]> {
   if (!friendUids.length) return []
 
   const chunks: string[][] = []
@@ -206,6 +241,8 @@ export async function getFriendPostsByDate(friendUids: string[], dateStr: string
   }
 
   const results: Post[] = []
+
+  // 친구랑보기 게시글
   for (const chunk of chunks) {
     const q = query(
       collection(db, 'posts'),
@@ -216,5 +253,21 @@ export async function getFriendPostsByDate(friendUids: string[], dateStr: string
     const snap = await getDocs(q)
     snap.docs.forEach(d => results.push({ id: d.id, ...d.data() } as Post))
   }
+
+  // 우리만보기 게시글 (인덱스 미배포 시 무시)
+  try {
+    const usQ = query(
+      collection(db, 'posts'),
+      where('visibility', '==', 'us'),
+      where('targetUid', '==', currentUserUid),
+      where('recordDate', '==', dateStr)
+    )
+    const usSnap = await getDocs(usQ)
+    usSnap.docs.forEach(d => {
+      const post = { id: d.id, ...d.data() } as Post
+      if (friendUids.includes(post.uid)) results.push(post)
+    })
+  } catch { /* 인덱스 준비 전에는 친구랑보기 결과만 표시 */ }
+
   return results
 }

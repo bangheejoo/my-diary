@@ -43,7 +43,7 @@ service cloud.firestore {
       // 작성: 로그인한 본인
       allow create: if isSignedIn()
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.visibility in ['private', 'friends']
+        && request.resource.data.visibility in ['private', 'friends', 'us']
         && request.resource.data.content is string
         && request.resource.data.content.size() > 0
         && request.resource.data.recordDate is string;
@@ -53,10 +53,12 @@ service cloud.firestore {
 
       // 읽기:
       //   - 본인 기록은 항상 가능
-      //   - 친구공개 기록은 친구만 가능
+      //   - 친구랑보기: 친구만 가능
+      //   - 우리만보기: targetUid 본인이고 친구인 경우만 가능
       allow read: if isSignedIn() && (
         isOwner(resource.data.uid) ||
-        (resource.data.visibility == 'friends' && isFriend(request.auth.uid, resource.data.uid))
+        (resource.data.visibility == 'friends' && isFriend(request.auth.uid, resource.data.uid)) ||
+        (resource.data.visibility == 'us' && resource.data.targetUid == request.auth.uid && isFriend(request.auth.uid, resource.data.uid))
       );
     }
 
@@ -67,8 +69,8 @@ service cloud.firestore {
       }
       function canAccessPost() {
         return isOwner(parentPost().data.uid) ||
-               (parentPost().data.visibility == 'friends' &&
-                isFriend(request.auth.uid, parentPost().data.uid));
+               (parentPost().data.visibility == 'friends' && isFriend(request.auth.uid, parentPost().data.uid)) ||
+               (parentPost().data.visibility == 'us' && parentPost().data.targetUid == request.auth.uid && isFriend(request.auth.uid, parentPost().data.uid));
       }
 
       // 읽기: 게시글에 접근 가능한 사용자

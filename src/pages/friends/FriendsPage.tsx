@@ -96,10 +96,9 @@ export default function FriendsPage() {
     if (!user) return
     setFeedLoading(true)
     try {
-      const uids = selectedUid === 'all' ? friendUids : [selectedUid]
       const posts = selectedUid === 'all'
-        ? await getFriendsPosts(uids)
-        : await getFriendPostsByUid(selectedUid)
+        ? await getFriendsPosts(friendUids, user.uid)
+        : await getFriendPostsByUid(selectedUid, user.uid)
       setFeedPosts(posts)
     } catch {
       setFeedPosts([])
@@ -109,18 +108,18 @@ export default function FriendsPage() {
   }
 
   async function loadCalendarDates() {
-    if (!friendUids.length) { setCalPostDates(new Set()); return }
+    if (!friendUids.length || !user) { setCalPostDates(new Set()); return }
     const uids = selectedUid === 'all' ? friendUids : [selectedUid]
-    const posts = await getFriendsPosts(uids)
+    const posts = await getFriendsPosts(uids, user.uid)
     setCalPostDates(new Set(posts.map(p => p.recordDate)))
   }
 
   async function handleCalDateClick(dateStr: string) {
-    if (dateStr > todayStr) return
+    if (dateStr > todayStr || !user) return
     setCalSelected(dateStr)
     setCalDateLoading(true)
     const uids = selectedUid === 'all' ? friendUids : [selectedUid]
-    const posts = await getFriendPostsByDate(uids, dateStr)
+    const posts = await getFriendPostsByDate(uids, dateStr, user.uid)
     setCalDatePosts(posts)
     setCalDateLoading(false)
   }

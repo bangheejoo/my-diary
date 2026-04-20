@@ -29,8 +29,14 @@ export default function PostCard({ post, readOnly = false, currentUserUid }: Pro
     <div className="post-card" onClick={handleClick} style={!readOnly ? { cursor: 'pointer' } : undefined}>
       <div className="post-card-header">
         <span className="post-date">{toKoreanDate(post.recordDate)}</span>
-        <span className={`badge ${post.visibility === 'private' ? 'badge-gray' : 'badge-mint'}`}>
-          {post.visibility === 'private' ? '나만보기' : '친구랑보기'}
+        <span className={`badge ${
+          post.visibility === 'private' ? 'badge-gray' :
+          post.visibility === 'us'      ? 'badge-pink' :
+          'badge-mint'
+        }`}>
+          {post.visibility === 'private' ? '나만보기' :
+           post.visibility === 'us'      ? '우리만보기' :
+           '친구랑보기'}
         </span>
       </div>
       <p
@@ -42,7 +48,7 @@ export default function PostCard({ post, readOnly = false, currentUserUid }: Pro
           <img src={post.imageUrl} alt="기록 이미지" loading="lazy" />
         </div>
       )}
-      {currentUserUid && (post.visibility === 'friends' || currentUserUid === post.uid) && (
+      {currentUserUid && (post.visibility !== 'private' || currentUserUid === post.uid) && (
         <>
           <ReactionBar postId={post.id} currentUserUid={currentUserUid} postOwnerUid={post.uid} />
           <CommentSection postId={post.id} postUid={post.uid} currentUserUid={currentUserUid} />

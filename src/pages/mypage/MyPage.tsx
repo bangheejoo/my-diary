@@ -544,7 +544,7 @@ export default function MyPage() {
                         <span className="badge badge-gray">처리 완료</span>
                       )}
                       {!n.read && (
-                        <span style={{ width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: 'var(--pink)', display: 'inline-block', marginTop: '0.2rem' }} title="읽지 않음" />
+                        <span style={{ width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: 'var(--primary)', display: 'inline-block', marginTop: '0.2rem' }} title="읽지 않음" />
                       )}
                       {(n.type === 'comment' || n.type === 'mention' || n.type === 'reaction') && (
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" style={{ width: '0.9rem', height: '0.9rem', color: 'var(--gray-400)' }}>
@@ -668,17 +668,15 @@ function PostModal({
       >
         <div
           onClick={e => e.stopPropagation()}
-          style={{ width: '100%', maxWidth: '480px', pointerEvents: 'auto' }}
+          style={{ width: '100%', maxWidth: '480px', pointerEvents: 'auto', background: 'var(--white)' }}
         >
           {/* 닫기 버튼 */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button
               onClick={onClose}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: '2rem', height: '2rem', borderRadius: '50%', border: 'none',
-                background: 'rgba(255,255,255,0.9)', color: '#333', cursor: 'pointer',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.2)', flexShrink: 0,
+                width: '2rem', height: '2rem', cursor: 'pointer', flexShrink: 0,
               }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" style={{ width: '1rem', height: '1rem' }}>

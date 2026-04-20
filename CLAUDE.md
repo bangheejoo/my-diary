@@ -92,6 +92,12 @@ const firebaseConfig = {
 - 내정보 우측상단에 설정 기능
   : 테마 설정 (라이트/다크모드)
   : 폰트크기 설정 (소/중/대)
+  : 색상 설정 (핑크/블루/그린/옐로우/퍼플)
+  1. 핑크톤  #F29199, #F2BDC1, #CEF2E8, #F2D7D0, #0D0D0D
+  2. 블루톤 #7DAFFF, #BFD9FF, #D6F0FF, #EAF4FF, #0D0D0D
+  3. 그린톤 #7ED9B5, #BFF2DE, #E3FFF6, #F0FFF9, #0D0D0D 
+  4. 옐로우톤 #FFD97D, #FFF0B3, #FFF8D6, #FFFBEB, #0D0D0D
+  5. 퍼플톤 #B39DDB, #D6C8F2, #EFE6FF, #F6F2FF, #0D0D0D
   : 계정 삭제
 
 ## 구조

@@ -5,7 +5,15 @@ import BottomNav from '../../components/BottomNav'
 
 type FontScale = 'sm' | 'md' | 'lg'
 type Theme = 'light' | 'dark'
+type ColorTheme = 'pink' | 'blue' | 'green' | 'yellow' | 'purple'
+type DefaultVisibility = 'private' | 'friends' | 'us'
 type DeleteStep = 'confirm' | 'password'
+
+const VISIBILITY_OPTIONS: { value: DefaultVisibility; label: string; desc: string }[] = [
+  { value: 'private', label: '나만보기',   desc: '나만 볼 수 있어요' },
+  { value: 'friends', label: '친구랑보기', desc: '친구 모두가 볼 수 있어요' },
+  { value: 'us',      label: '우리만보기', desc: '특정 친구 1명만 볼 수 있어요' },
+]
 
 const FONT_OPTIONS: { value: FontScale; label: string; previewSize: string }[] = [
   { value: 'sm', label: '작게', previewSize: '1.1rem' },
@@ -18,6 +26,14 @@ const THEME_OPTIONS: { value: Theme; label: string; icon: string }[] = [
   { value: 'dark',  label: '다크',   icon: '🌙' },
 ]
 
+const COLOR_OPTIONS: { value: ColorTheme; label: string; colors: [string, string, string] }[] = [
+  { value: 'pink',   label: '핑크',  colors: ['#F29199', '#F2BDC1', '#CEF2E8'] },
+  { value: 'blue',   label: '블루',  colors: ['#7DAFFF', '#BFD9FF', '#FFE2BD'] },
+  { value: 'green',  label: '그린',  colors: ['#7ED9B5', '#BFF2DE', '#7FC7BD'] },
+  { value: 'yellow', label: '옐로우', colors: ['#FFD97D', '#FFF0B3', '#AAF683'] },
+  { value: 'purple', label: '퍼플',  colors: ['#B39DDB', '#D6C8F2', '#F7CAC9'] },
+]
+
 function applyFontScale(scale: FontScale) {
   document.documentElement.setAttribute('data-font', scale)
   localStorage.setItem('fontScale', scale)
@@ -28,6 +44,11 @@ function applyTheme(theme: Theme) {
   localStorage.setItem('theme', theme)
 }
 
+function applyColorTheme(color: ColorTheme) {
+  document.documentElement.setAttribute('data-color', color)
+  localStorage.setItem('colorTheme', color)
+}
+
 export default function SettingsPage() {
   const navigate = useNavigate()
 
@@ -36,6 +57,12 @@ export default function SettingsPage() {
   )
   const [theme, setTheme] = useState<Theme>(
     (localStorage.getItem('theme') as Theme) || 'light'
+  )
+  const [colorTheme, setColorTheme] = useState<ColorTheme>(
+    (localStorage.getItem('colorTheme') as ColorTheme) || 'pink'
+  )
+  const [defaultVisibility, setDefaultVisibility] = useState<DefaultVisibility>(
+    (localStorage.getItem('defaultVisibility') as DefaultVisibility) || 'private'
   )
 
   // 계정 삭제 모달
@@ -52,6 +79,16 @@ export default function SettingsPage() {
   function handleThemeChange(t: Theme) {
     setTheme(t)
     applyTheme(t)
+  }
+
+  function handleColorThemeChange(c: ColorTheme) {
+    setColorTheme(c)
+    applyColorTheme(c)
+  }
+
+  function handleDefaultVisibilityChange(v: DefaultVisibility) {
+    setDefaultVisibility(v)
+    localStorage.setItem('defaultVisibility', v)
   }
 
   function openDeleteModal() {
@@ -77,6 +114,8 @@ export default function SettingsPage() {
       await deleteAccount(deletePassword)
       localStorage.removeItem('theme')
       localStorage.removeItem('fontScale')
+      localStorage.removeItem('colorTheme')
+      localStorage.removeItem('defaultVisibility')
       navigate('/', { replace: true })
     } catch (err: unknown) {
       const code = (err as { code?: string }).code
@@ -124,6 +163,54 @@ export default function SettingsPage() {
           </p>
         </div>
 
+        {/* 색상 테마 */}
+        <div className="setting-section">
+          <h3 className="setting-title">색상 테마</h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+            {COLOR_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                className={`color-theme-btn${colorTheme === opt.value ? ' selected' : ''}`}
+                onClick={() => handleColorThemeChange(opt.value)}
+              >
+                <span className="color-theme-swatch">
+                  {/* 3분할 원형 스와치 */}
+                  <svg viewBox="0 0 36 36" width="36" height="36">
+                    <path d="M18 18 L18 2 A16 16 0 0 1 31.86 26 Z" fill={opt.colors[0]} />
+                    <path d="M18 18 L31.86 26 A16 16 0 0 1 4.14 26 Z" fill={opt.colors[1]} />
+                    <path d="M18 18 L4.14 26 A16 16 0 0 1 18 2 Z" fill={opt.colors[2]} />
+                    <circle cx="18" cy="18" r="16" fill="none" stroke="var(--gray-200)" strokeWidth="1" />
+                  </svg>
+                </span>
+                <span className="color-theme-label">{opt.label}</span>
+              </button>
+            ))}
+          </div>
+          <p className="text-sm" style={{ color: 'var(--gray-400)', marginTop: '0.25rem' }}>
+            선택한 색상은 앱 전체에 바로 적용돼요
+          </p>
+        </div>
+
+        {/* 기본 공개 범위 */}
+        <div className="setting-section">
+          <h3 className="setting-title">기본 공개 범위</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {VISIBILITY_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                className={`visibility-default-btn${defaultVisibility === opt.value ? ' selected' : ''}`}
+                onClick={() => handleDefaultVisibilityChange(opt.value)}
+              >
+                <span className="visibility-default-label">{opt.label}</span>
+                <span className="visibility-default-desc">{opt.desc}</span>
+              </button>
+            ))}
+          </div>
+          <p className="text-sm" style={{ color: 'var(--gray-400)', marginTop: '0.25rem' }}>
+            기록을 새로 쓸 때 기본으로 선택돼요
+          </p>
+        </div>
+
         {/* 글자 크기 */}
         <div className="setting-section">
           <h3 className="setting-title">글자 크기</h3>
@@ -147,13 +234,12 @@ export default function SettingsPage() {
         {/* 계정 */}
         <div className="setting-section">
           <h3 className="setting-title">계정</h3>
-          <p className="text-sm" style={{ color: 'var(--gray-400)', marginBottom: '0.75rem', lineHeight: 1.6 }}>
+          <p className="text-sm" style={{ color: 'var(--gray-400)', lineHeight: 1.6 }}>
             계정을 삭제하면 모든 기록, 사진, 친구 관계가 영구 삭제되며 복구할 수 없어요
           </p>
           <button
             className="btn btn-danger btn-full"
             onClick={openDeleteModal}
-            style={{ marginTop: '0.25rem' }}
           >
             계정 삭제
           </button>

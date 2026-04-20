@@ -3,12 +3,20 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { createPost, updatePost, deletePost, getPost, getPostCountByDate } from '../../services/postService'
 import { uploadImage } from '../../services/storageService'
+import { getMyFriends } from '../../services/friendService'
+import { getUserProfile } from '../../services/authService'
 import { showToast } from '../../utils/toast'
 import { today, isPastOrToday } from '../../utils/formatDate'
 
 const MAX_CHARS = 1000
 
-type Visibility = 'private' | 'friends'
+type Visibility = 'private' | 'friends' | 'us'
+
+const VISIBILITY_OPTIONS: { value: Visibility; label: string }[] = [
+  { value: 'private', label: '나만보기' },
+  { value: 'friends', label: '친구랑보기' },
+  { value: 'us',      label: '우리만보기' },
+]
 
 export default function WritePage() {
   const { user } = useAuth()
@@ -19,7 +27,11 @@ export default function WritePage() {
 
   const [recordDate, setRecordDate] = useState(today())
   const [content, setContent] = useState('')
-  const [visibility, setVisibility] = useState<Visibility>('private')
+  const [visibility, setVisibility] = useState<Visibility>(
+    (localStorage.getItem('defaultVisibility') as Visibility) || 'private'
+  )
+  const [targetUid, setTargetUid] = useState<string | null>(null)
+  const [friends, setFriends] = useState<{ uid: string; nickname: string }[]>([])
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null)
@@ -28,12 +40,21 @@ export default function WritePage() {
   const [imageError, setImageError] = useState('')
   const [dateError, setDateError] = useState('')
   const [contentError, setContentError] = useState('')
+  const [targetError, setTargetError] = useState('')
   const [saving, setSaving] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [pageLoading, setPageLoading] = useState(isEdit)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!user) return
+    getMyFriends(user.uid).then(async raw => {
+      const profiles = await Promise.all(raw.map(f => getUserProfile(f.friendUid)))
+      setFriends(raw.map((f, i) => ({ uid: f.friendUid, nickname: profiles[i]?.nickname || '알 수 없음' })))
+    }).catch(() => {})
+  }, [user])
 
   useEffect(() => {
     if (!isEdit || !editId || !user) return
@@ -46,6 +67,7 @@ export default function WritePage() {
       setRecordDate(post.recordDate)
       setContent(post.content)
       setVisibility(post.visibility)
+      setTargetUid(post.targetUid ?? null)
       if (post.imageUrl) {
         setImagePreviewUrl(post.imageUrl)
         setExistingImageUrl(post.imageUrl)
@@ -78,11 +100,13 @@ export default function WritePage() {
     setImageError('')
     setDateError('')
     setContentError('')
+    setTargetError('')
 
     let valid = true
     if (!recordDate) { setDateError('날짜를 선택해 주세요'); valid = false }
     else if (!isPastOrToday(recordDate)) { setDateError('오늘 이전 날짜만 기록할 수 있어요'); valid = false }
     if (!content.trim()) { setContentError('내용을 입력해 주세요'); valid = false }
+    if (visibility === 'us' && !targetUid) { setTargetError('함께 볼 친구를 선택해 주세요'); valid = false }
     if (!valid) return
 
     setSaving(true)
@@ -110,6 +134,7 @@ export default function WritePage() {
           content: content.trim(),
           recordDate,
           visibility,
+          targetUid,
           imageUrl,
           imageStoragePath: storagePath,
           oldImageStoragePath: imageRemoved || imageFile ? existingStoragePath : null,
@@ -121,6 +146,7 @@ export default function WritePage() {
           content: content.trim(),
           recordDate,
           visibility,
+          targetUid,
           imageUrl,
           imageStoragePath: storagePath,
         })
@@ -167,7 +193,7 @@ export default function WritePage() {
         <span className="page-title">{isEdit ? '기록 다듬기' : '기록 남기기'}</span>
         <button
           className="btn-icon"
-          style={{ color: 'var(--pink)' }}
+          style={{ color: 'var(--primary)' }}
           onClick={handleSave}
           disabled={saving}
         >
@@ -200,17 +226,36 @@ export default function WritePage() {
         <div className="form-group">
           <label className="form-label">공개 범위</label>
           <div className="visibility-group">
-            {(['private', 'friends'] as Visibility[]).map(v => (
+            {VISIBILITY_OPTIONS.map(opt => (
               <button
-                key={v}
+                key={opt.value}
                 type="button"
-                className={`visibility-btn${visibility === v ? ' selected' : ''}`}
-                onClick={() => setVisibility(v)}
+                className={`visibility-btn${visibility === opt.value ? ' selected' : ''}`}
+                onClick={() => { setVisibility(opt.value); setTargetError('') }}
               >
-                {v === 'private' ? '나만보기' : '친구랑보기'}
+                {opt.label}
               </button>
             ))}
           </div>
+          {visibility === 'us' && (
+            <div style={{ marginTop: '0.625rem' }}>
+              {friends.length === 0 ? (
+                <p className="text-sm" style={{ color: 'var(--gray-400)' }}>친구가 없어요. 친구를 추가하면 우리만보기를 사용할 수 있어요.</p>
+              ) : (
+                <select
+                  className={`form-input${targetError ? ' input-error' : ''}`}
+                  value={targetUid || ''}
+                  onChange={e => { setTargetUid(e.target.value || null); setTargetError('') }}
+                >
+                  <option value="">함께 볼 친구를 선택해 주세요</option>
+                  {friends.map(f => (
+                    <option key={f.uid} value={f.uid}>{f.nickname}</option>
+                  ))}
+                </select>
+              )}
+              {targetError && <p className="err-msg">{targetError}</p>}
+            </div>
+          )}
         </div>
 
         {/* 내용 */}

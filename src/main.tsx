@@ -11,6 +11,10 @@ document.documentElement.setAttribute('data-font', savedFont)
 const savedTheme = localStorage.getItem('theme') || 'light'
 document.documentElement.setAttribute('data-theme', savedTheme)
 
+// 저장된 색상 테마 즉시 적용
+const savedColorTheme = localStorage.getItem('colorTheme') || 'pink'
+document.documentElement.setAttribute('data-color', savedColorTheme)
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
