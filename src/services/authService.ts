@@ -30,6 +30,7 @@ export interface UserProfile {
   phone: string
   birthdate: string
   photoUrl?: string | null
+  photoThumbUrl?: string | null
 }
 
 export async function isNicknameTaken(nickname: string, excludeUid: string | null = null): Promise<boolean> {
@@ -113,8 +114,8 @@ export async function changePassword(currentPassword: string, newPassword: strin
   await updatePassword(user, newPassword)
 }
 
-export async function updateProfilePhoto(uid: string, photoUrl: string) {
-  await updateDoc(doc(db, 'users', uid), { photoUrl })
+export async function updateProfilePhoto(uid: string, photoUrl: string, photoThumbUrl?: string) {
+  await updateDoc(doc(db, 'users', uid), { photoUrl, ...(photoThumbUrl ? { photoThumbUrl } : {}) })
 }
 
 async function safeDeleteStorageObject(path: string) {
@@ -136,7 +137,10 @@ export async function deleteAccount(password: string): Promise<void> {
   const nickname = userSnap.exists() ? (userSnap.data().nickname as string) : null
 
   // 3. 프로필 사진 Storage 삭제
-  await safeDeleteStorageObject(`profiles/${uid}/avatar`)
+  await Promise.all([
+    safeDeleteStorageObject(`profiles/${uid}/avatar`),
+    safeDeleteStorageObject(`profiles/${uid}/avatar_thumb`),
+  ])
 
   // 4. 내 게시글 전체 삭제 (이미지 + 댓글 + 공감 서브컬렉션 포함)
   const postsSnap = await getDocs(query(collection(db, 'posts'), where('uid', '==', uid)))

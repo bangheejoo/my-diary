@@ -3,6 +3,7 @@ import type { Post } from '../services/postService'
 import { toKoreanDate } from '../utils/formatDate'
 import ReactionBar from './ReactionBar'
 import CommentSection from './CommentSection'
+import LazyImage from './LazyImage'
 
 interface Props {
   post: Post
@@ -44,9 +45,7 @@ export default function PostCard({ post, readOnly = false, currentUserUid }: Pro
         dangerouslySetInnerHTML={{ __html: escapeHtml(post.content) }}
       />
       {post.imageUrl && (
-        <div className="post-image">
-          <img src={post.imageUrl} alt="기록 이미지" loading="lazy" />
-        </div>
+        <LazyImage src={post.imageUrl} alt="기록 이미지" wrapperClassName="post-image" />
       )}
       {currentUserUid && (post.visibility !== 'private' || currentUserUid === post.uid) && (
         <>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import type { Comment } from '../services/commentService'
 import { getComments, getCommentCount, addComment, deleteComment } from '../services/commentService'
 import { getUserProfile } from '../services/authService'
-import { getMyFriends } from '../services/friendService'
+import { getMyFriends, getFriendshipStatus, sendFriendRequest } from '../services/friendService'
 import { showToast } from '../utils/toast'
 
 interface Props {
@@ -14,12 +14,14 @@ interface Props {
 interface CommentWithNick extends Comment {
   nickname: string
   photoUrl?: string | null
+  photoThumbUrl?: string | null
 }
 
 interface FriendSummary {
   uid: string
   nickname: string
   photoUrl?: string | null
+  photoThumbUrl?: string | null
 }
 
 function timeAgo(ts: unknown): string {
@@ -46,6 +48,8 @@ function renderContent(content: string) {
   )
 }
 
+type ModalStatus = { status: string; requesterId?: string } | null | 'loading'
+
 export default function CommentSection({ postId, postUid, currentUserUid }: Props) {
   const [open, setOpen] = useState(false)
   const [comments, setComments] = useState<CommentWithNick[]>([])
@@ -58,6 +62,12 @@ export default function CommentSection({ postId, postUid, currentUserUid }: Prop
   const [friends, setFriends] = useState<FriendSummary[]>([])
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
   const [mentionIndex, setMentionIndex] = useState(0)
+
+  // 유저 프로필 모달
+  const [userModal, setUserModal] = useState<{ uid: string; nickname: string; photoUrl?: string | null; photoThumbUrl?: string | null } | null>(null)
+  const [modalStatus, setModalStatus] = useState<ModalStatus>('loading')
+  const [requesting, setRequesting] = useState(false)
+  const [showFullPhoto, setShowFullPhoto] = useState(false)
 
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLUListElement>(null)
@@ -93,6 +103,7 @@ export default function CommentSection({ postId, postUid, currentUserUid }: Prop
         ...c,
         nickname: profiles[i]?.nickname || '알 수 없음',
         photoUrl: profiles[i]?.photoUrl,
+        photoThumbUrl: profiles[i]?.photoThumbUrl,
       })))
     } catch {
       showToast('댓글을 불러오지 못했어요', 'error')
@@ -109,6 +120,7 @@ export default function CommentSection({ postId, postUid, currentUserUid }: Prop
         uid: f.friendUid,
         nickname: profiles[i]?.nickname || '알 수 없음',
         photoUrl: profiles[i]?.photoUrl,
+        photoThumbUrl: profiles[i]?.photoThumbUrl,
       })))
     } catch (err) {
       console.error('loadFriends error:', err)
@@ -195,6 +207,38 @@ export default function CommentSection({ postId, postUid, currentUserUid }: Prop
     }
   }
 
+  async function handleUserClick(uid: string, nickname: string, photoUrl?: string | null, photoThumbUrl?: string | null) {
+    setUserModal({ uid, nickname, photoUrl, photoThumbUrl })
+    setModalStatus('loading')
+    try {
+      const s = await getFriendshipStatus(currentUserUid, uid)
+      setModalStatus(s as ModalStatus)
+    } catch {
+      setModalStatus(null)
+    }
+  }
+
+  async function handleFriendRequest() {
+    if (!userModal) return
+    setRequesting(true)
+    try {
+      await sendFriendRequest(currentUserUid, userModal.uid)
+      setModalStatus({ status: 'pending', requesterId: currentUserUid })
+      showToast('친구 요청을 보냈어요', 'success')
+    } catch (err) {
+      showToast((err as Error).message || '요청에 실패했어요', 'error')
+    } finally {
+      setRequesting(false)
+    }
+  }
+
+  function closeUserModal() {
+    setUserModal(null)
+    setModalStatus('loading')
+    setRequesting(false)
+    setShowFullPhoto(false)
+  }
+
   function handleToggle(e: React.MouseEvent) {
     e.stopPropagation()
     setOpen(v => !v)
@@ -224,14 +268,24 @@ export default function CommentSection({ postId, postUid, currentUserUid }: Prop
             <p className="comment-empty">아직 댓글이 없어요. 첫 댓글을 남겨보세요!</p>
           ) : (
             <ul className="comment-list">
-              {comments.map(c => (
+              {comments.map(c => {
+                return (
                 <li key={c.id} className="comment-item">
-                  <div className="user-avatar" style={{ width: '1.75rem', height: '1.75rem', fontSize: '0.72rem', flexShrink: 0 }}>
-                    {c.photoUrl ? <img src={c.photoUrl} alt="프로필" /> : c.nickname[0]}
+                  <div
+                    className="user-avatar"
+                    style={{ width: '1.75rem', height: '1.75rem', fontSize: '0.72rem', flexShrink: 0, cursor: 'pointer' }}
+                    onClick={() => handleUserClick(c.uid, c.nickname, c.photoUrl, c.photoThumbUrl)}
+                  >
+                    {(c.photoThumbUrl || c.photoUrl)
+                      ? <img src={c.photoThumbUrl || c.photoUrl!} alt="프로필" loading="lazy" decoding="async" />
+                      : c.nickname[0]}
                   </div>
                   <div className="comment-content">
                     <div className="comment-header">
-                      <span className="comment-author">{c.nickname}</span>
+                      <span
+                        className={'comment-author comment-author-clickable'}
+                        onClick={() => handleUserClick(c.uid, c.nickname, c.photoUrl, c.photoThumbUrl)}
+                      >{c.nickname}</span>
                       <span className="comment-time">{timeAgo(c.createdAt)}</span>
                     </div>
                     <p className="comment-text">{renderContent(c.content)}</p>
@@ -248,7 +302,8 @@ export default function CommentSection({ postId, postUid, currentUserUid }: Prop
                     </button>
                   )}
                 </li>
-              ))}
+              )
+              })}
             </ul>
           )}
 
@@ -264,7 +319,9 @@ export default function CommentSection({ postId, postUid, currentUserUid }: Prop
                     onMouseDown={e => { e.preventDefault(); selectMention(f) }}
                   >
                     <div className="user-avatar" style={{ width: '1.5rem', height: '1.5rem', fontSize: '0.65rem', flexShrink: 0 }}>
-                      {f.photoUrl ? <img src={f.photoUrl} alt="" /> : f.nickname[0]}
+                      {(f.photoThumbUrl || f.photoUrl)
+                        ? <img src={f.photoThumbUrl || f.photoUrl!} alt="" loading="lazy" decoding="async" />
+                        : f.nickname[0]}
                     </div>
                     <span className="mention-item-nick">@{f.nickname}</span>
                   </li>
@@ -292,6 +349,78 @@ export default function CommentSection({ postId, postUid, currentUserUid }: Prop
               {submitting ? <div className="spinner" style={{ width: '1rem', height: '1rem' }} /> : '남기기'}
             </button>
           </form>
+        </div>
+      )}
+      {/* 프로필 사진 확대 */}
+      {userModal && showFullPhoto && userModal.photoUrl && (
+        <div className="modal-overlay" onClick={() => setShowFullPhoto(false)} style={{ zIndex: 110 }}>
+          <div onClick={e => e.stopPropagation()} style={{ position: 'relative' }}>
+            <img
+              src={userModal.photoUrl}
+              alt="프로필 사진"
+              loading="lazy"
+              decoding="async"
+              style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: '0.75rem', display: 'block' }}
+            />
+            <button
+              className="btn-icon"
+              onClick={() => setShowFullPhoto(false)}
+              style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0,0,0,0.5)', color: 'var(--white)', borderRadius: '50%' }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 유저 프로필 모달 */}
+      {userModal && (
+        <div className="modal-overlay" onClick={closeUserModal}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', gap: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            {/* 닫기 버튼 */}
+            <button className="btn-icon" onClick={closeUserModal} style={{ alignSelf: 'flex-end', marginBottom: '-0.5rem' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* 프로필 사진 (모달 아바타는 원본, 확대는 원본) */}
+            <div
+              className="user-avatar"
+              style={{ width: '5rem', height: '5rem', fontSize: '1.75rem', cursor: userModal.photoUrl ? 'zoom-in' : 'default' }}
+              onClick={userModal.photoUrl ? () => setShowFullPhoto(true) : undefined}
+            >
+              {(userModal.photoThumbUrl || userModal.photoUrl)
+                ? <img src={userModal.photoThumbUrl || userModal.photoUrl!} alt="프로필" loading="lazy" decoding="async" />
+                : userModal.nickname[0]
+              }
+            </div>
+
+            {/* 닉네임 */}
+            <p style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--black)' }}>{userModal.nickname}</p>
+
+            {/* 상태 / 버튼 */}
+            {userModal.uid !== currentUserUid ? (modalStatus === 'loading' ? (
+              <div className="spinner" />
+            ) : modalStatus === null ? (
+              <button className="btn btn-primary btn-full" onClick={handleFriendRequest} disabled={requesting}>
+                {requesting
+                  ? <><span className="spinner" style={{ width: '1rem', height: '1rem' }} /> 요청 중...</>
+                  : '친구 요청 보내기'
+                }
+              </button>
+            ) : (modalStatus as { status: string }).status === 'accepted' ? (
+              <span className="badge badge-mint" style={{ fontSize: '0.85rem', padding: '0.3rem 0.9rem' }}>이미 친구예요</span>
+            ) : (modalStatus as { status: string; requesterId?: string }).requesterId === currentUserUid ? (
+              <span className="badge badge-gray" style={{ fontSize: '0.85rem', padding: '0.3rem 0.9rem' }}>요청을 보냈어요</span>
+            ) : (
+              <span className="badge badge-pink" style={{ fontSize: '0.85rem', padding: '0.3rem 0.9rem' }}>나에게 친구 요청을 보냈어요</span>
+            )):
+            <span className="badge badge-pink" style={{ fontSize: '0.85rem', padding: '0.3rem 0.9rem' }}>나예요</span>
+            }
+          </div>
         </div>
       )}
     </div>

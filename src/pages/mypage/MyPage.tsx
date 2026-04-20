@@ -162,8 +162,8 @@ export default function MyPage() {
     if (!photoFile || !user) return
     setPhotoSaving(true)
     try {
-      const { url } = await uploadProfilePhoto(photoFile, user.uid)
-      await updateProfilePhoto(user.uid, url)
+      const { url, thumbUrl } = await uploadProfilePhoto(photoFile, user.uid)
+      await updateProfilePhoto(user.uid, url, thumbUrl)
       showToast('프로필 사진이 변경되었어요', 'success')
       if (photoPreview) URL.revokeObjectURL(photoPreview)
       setPhotoFile(null)
@@ -334,9 +334,11 @@ export default function MyPage() {
           >
             {photoPreview
               ? <img src={photoPreview} alt="미리보기" />
-              : profile?.photoUrl
-                ? <img src={profile.photoUrl} alt="프로필" />
-                : displayName[0]}
+              : profile?.photoThumbUrl
+                ? <img src={profile.photoThumbUrl} alt="프로필" loading="lazy" decoding="async" />
+                : profile?.photoUrl
+                  ? <img src={profile.photoUrl} alt="프로필" loading="lazy" decoding="async" />
+                  : displayName[0]}
           </div>
           <button type="button" className="photo-edit-badge" onClick={() => photoInputRef.current?.click()} title="사진 변경">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -589,16 +591,18 @@ export default function MyPage() {
       {/* 프로필 사진 확대 모달 */}
       {showPhotoModal && profile?.photoUrl && (
         <div className="modal-overlay" onClick={() => setShowPhotoModal(false)} style={{ zIndex: 100 }}>
-          <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
+          <div onClick={e => e.stopPropagation()} style={{ position: 'relative' }}>
             <img
               src={profile.photoUrl}
               alt="프로필 사진"
-              style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '0.75rem', display: 'block' }}
+              loading="lazy"
+              decoding="async"
+              style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: '0.75rem', display: 'block' }}
             />
             <button
               className="btn-icon"
               onClick={() => setShowPhotoModal(false)}
-              style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0,0,0,0.5)', color: '#fff', borderRadius: '50%' }}
+              style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0,0,0,0.5)', color: 'var(--white)', borderRadius: '50%' }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -659,16 +663,17 @@ function PostModal({
       />
       {/* 콘텐츠 스크롤 영역 */}
       <div
+        onClick={onClose}
         style={{
           position: 'fixed', inset: 0, zIndex: 9999,
           overflowY: 'auto', padding: '1.5rem 1rem',
           display: 'flex', flexDirection: 'column', alignItems: 'center',
-          pointerEvents: 'none',
+          pointerEvents: 'auto',
         }}
       >
         <div
           onClick={e => e.stopPropagation()}
-          style={{ width: '100%', maxWidth: '480px', pointerEvents: 'auto', background: 'var(--white)' }}
+          style={{ width: '100%', maxWidth: '480px', background: 'var(--white)' }}
         >
           {/* 닫기 버튼 */}
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>

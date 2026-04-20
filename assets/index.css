@@ -194,7 +194,7 @@ body {
 .badge-pink { background: var(--primary-light); color: var(--primary-dark2); }
 .badge-mint { background: var(--mint); color: var(--mint-dark); }
 .badge-pink-light { background: var(--primary-light2); color: var(--primary-dark2); }
-.badge-gray { background: var(--gray-100); color: var(--gray-600); }
+.badge-gray { background: var(--gray-200); color: var(--gray-600); }
 
 /* ── 토스트 */
 #toast-container {
@@ -309,6 +309,8 @@ body {
 .comment-content { flex: 1; min-width: 0; }
 .comment-header { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.1rem; }
 .comment-author { font-size: 0.78rem; font-weight: 700; color: var(--black); }
+.comment-author-clickable { cursor: pointer; transition: color 0.15s; }
+.comment-author-clickable:hover { color: var(--pink); }
 .comment-time { font-size: 0.72rem; color: var(--gray-400); }
 .comment-text { font-size: 0.82rem; color: var(--gray-700); line-height: 1.5; word-break: break-word; }
 .comment-delete {
@@ -443,6 +445,7 @@ body {
   position: fixed; inset: 0; background: rgba(0,0,0,0.4);
   z-index: 100; display: flex; align-items: center; justify-content: center;
   padding: 1rem; animation: fadeIn 0.2s;
+  overflow-y: auto;
 }
 .modal {
   background: var(--white); width: 100%; max-width: 360px;
@@ -484,7 +487,7 @@ body {
   cursor: pointer; transition: all 0.15s; color: var(--gray-500); font-family: inherit;
 }
 .font-scale-btn:hover:not(.selected) { border-color: var(--gray-300); background: var(--gray-50); }
-.font-scale-btn.selected { border-color: var(--primary); background: var(--primary-light2); color: var(--primary); }
+.font-scale-btn.selected { border-color: var(--primary); background: var(--white); color: var(--primary); }
 .font-scale-label { font-size: 0.75rem; font-weight: 600; }
 
 /* 프로필 사진 편집 배지 */
@@ -629,12 +632,12 @@ body {
 /* ── 색상 테마 (옐로우) */
 [data-color="yellow"] {
   --primary-dark:  #fac549;
-  --primary-dark2: #efb837;
+  --primary-dark2: #d8a122;
   --primary:       #fcd06a;
-  --primary-light: #FFF0B3;
+  --primary-light: #ffea98;
   --primary-light2:#FFFBEB;
-  --mint:          #AAF683;
-  --mint-dark:     #6ab146;
+  --mint:          #93df6d;
+  --mint-dark:     #589d36;
 }
 
 /* ── 색상 테마 (퍼플) */

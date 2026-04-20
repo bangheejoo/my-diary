@@ -53,7 +53,7 @@ export async function uploadImage(
 
   const storagePath = `posts/${uid}/${Date.now()}_${file.name}`
   const storageRef = ref(storage, storagePath)
-  await uploadBytes(storageRef, target)
+  await uploadBytes(storageRef, target, { cacheControl: 'public, max-age=31536000' })
   const url = await getDownloadURL(storageRef)
 
   return { url, storagePath }
@@ -62,24 +62,36 @@ export async function uploadImage(
 export async function uploadProfilePhoto(
   file: File,
   uid: string
-): Promise<{ url: string; storagePath: string }> {
+): Promise<{ url: string; thumbUrl: string; storagePath: string }> {
   if (!file) throw new Error('파일이 없어요')
 
-  // 프로필 사진은 512px / 최대 2MB 로 압축
+  // 원본: 512px / 최대 2MB
   const MAX_PROFILE_SIZE = 2 * 1024 * 1024
-  let target = await compressImage(file, 0.8, 512)
-  if (target.size > MAX_PROFILE_SIZE) {
-    target = await compressImage(target, 0.6, 512)
+  let full = await compressImage(file, 0.8, 512)
+  if (full.size > MAX_PROFILE_SIZE) {
+    full = await compressImage(full, 0.6, 512)
   }
-  if (target.size > MAX_PROFILE_SIZE) {
+  if (full.size > MAX_PROFILE_SIZE) {
     throw new Error('이미지 용량이 너무 커요 더 작은 이미지를 사용해 주세요')
   }
 
+  // 썸네일: 96px (아바타 표시용)
+  const thumb = await compressImage(file, 0.8, 96)
+
   const storagePath = `profiles/${uid}/avatar`
-  const storageRef = ref(storage, storagePath)
-  await uploadBytes(storageRef, target)
-  const url = await getDownloadURL(storageRef)
-  return { url, storagePath }
+  const thumbPath = `profiles/${uid}/avatar_thumb`
+
+  const [, thumbSnap] = await Promise.all([
+    uploadBytes(ref(storage, storagePath), full, { cacheControl: 'public, max-age=31536000' }),
+    uploadBytes(ref(storage, thumbPath), thumb, { cacheControl: 'public, max-age=31536000' }),
+  ])
+  const [url, thumbUrl] = await Promise.all([
+    getDownloadURL(ref(storage, storagePath)),
+    getDownloadURL(ref(storage, thumbPath)),
+  ])
+
+  void thumbSnap // suppress unused warning
+  return { url, thumbUrl, storagePath }
 }
 
 export async function deleteImage(storagePath: string) {

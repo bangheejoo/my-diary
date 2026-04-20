@@ -30,7 +30,7 @@ const COLOR_OPTIONS: { value: ColorTheme; label: string; colors: [string, string
   { value: 'pink',   label: '핑크',  colors: ['#F29199', '#F2BDC1', '#CEF2E8'] },
   { value: 'blue',   label: '블루',  colors: ['#7DAFFF', '#BFD9FF', '#FFE2BD'] },
   { value: 'green',  label: '그린',  colors: ['#7ED9B5', '#BFF2DE', '#7FC7BD'] },
-  { value: 'yellow', label: '옐로우', colors: ['#FFD97D', '#FFF0B3', '#AAF683'] },
+  { value: 'yellow', label: '옐로우', colors: ['#FFD97D', '#FFEA98', '#93DF6D'] },
   { value: 'purple', label: '퍼플',  colors: ['#B39DDB', '#D6C8F2', '#F7CAC9'] },
 ]
 

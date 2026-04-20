@@ -15,6 +15,7 @@ import { toKoreanDate, today, firstDayOfMonth, lastDateOfMonth } from '../../uti
 import BottomNav from '../../components/BottomNav'
 import ReactionBar from '../../components/ReactionBar'
 import CommentSection from '../../components/CommentSection'
+import LazyImage from '../../components/LazyImage'
 
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -39,6 +40,8 @@ function SkeletonFeedCard() {
 
 interface FriendWithProfile extends Friendship {
   nickname: string
+  photoUrl?: string | null
+  photoThumbUrl?: string | null
 }
 
 type Tab = 'feed' | 'calendar'
@@ -86,7 +89,12 @@ export default function FriendsPage() {
     try {
       const raw = await getMyFriends(user.uid)
       const profiles = await Promise.all(raw.map(f => getUserProfile(f.friendUid)))
-      setFriends(raw.map((f, i) => ({ ...f, nickname: profiles[i]?.nickname || '알 수 없음' })))
+      setFriends(raw.map((f, i) => ({
+        ...f,
+        nickname: profiles[i]?.nickname || '알 수 없음',
+        photoUrl: profiles[i]?.photoUrl,
+        photoThumbUrl: profiles[i]?.photoThumbUrl,
+      })))
     } catch {
       showToast('친구 목록을 불러오지 못했어요', 'error')
     }
@@ -230,13 +238,17 @@ export default function FriendsPage() {
                 <div key={p.id} className="post-card">
                   <div className="post-card-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div className="user-avatar" style={{ width: '1.75rem', height: '1.75rem', fontSize: '0.75rem' }}>{name[0]}</div>
+                      <div className="user-avatar" style={{ width: '1.75rem', height: '1.75rem', fontSize: '0.75rem' }}>
+                        {(friend?.photoThumbUrl || friend?.photoUrl)
+                          ? <img src={friend.photoThumbUrl || friend.photoUrl!} alt={name} loading="lazy" decoding="async" />
+                          : name[0]}
+                      </div>
                       <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{name}</span>
                     </div>
                     <span className="post-date">{toKoreanDate(p.recordDate)}</span>
                   </div>
                   <p className="post-content">{p.content}</p>
-                  {p.imageUrl && <div className="post-image"><img src={p.imageUrl} alt="기록 이미지" loading="lazy" /></div>}
+                  {p.imageUrl && <LazyImage src={p.imageUrl} alt="기록 이미지" wrapperClassName="post-image" />}
                   {user && (
                     <>
                       <ReactionBar postId={p.id} currentUserUid={user.uid} postOwnerUid={p.uid} />
@@ -300,13 +312,17 @@ export default function FriendsPage() {
                     <div key={p.id} className="post-card">
                       <div className="post-card-header">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <div className="user-avatar" style={{ width: '1.75rem', height: '1.75rem', fontSize: '0.75rem' }}>{name[0]}</div>
+                          <div className="user-avatar" style={{ width: '1.75rem', height: '1.75rem', fontSize: '0.75rem' }}>
+                              {(friend?.photoThumbUrl || friend?.photoUrl)
+                                ? <img src={friend.photoThumbUrl || friend.photoUrl!} alt={name} loading="lazy" decoding="async" />
+                                : name[0]}
+                            </div>
                           <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{name}</span>
                         </div>
                         <span className="post-date">{toKoreanDate(p.recordDate)}</span>
                       </div>
                       <p className="post-content">{p.content}</p>
-                      {p.imageUrl && <div className="post-image"><img src={p.imageUrl} alt="기록 이미지" loading="lazy" /></div>}
+                      {p.imageUrl && <LazyImage src={p.imageUrl} alt="기록 이미지" wrapperClassName="post-image" />}
                       {user && (
                         <>
                           <ReactionBar postId={p.id} currentUserUid={user.uid} postOwnerUid={p.uid} />
