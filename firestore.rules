@@ -58,7 +58,7 @@ service cloud.firestore {
       allow read: if isSignedIn() && (
         isOwner(resource.data.uid) ||
         (resource.data.visibility == 'friends' && isFriend(request.auth.uid, resource.data.uid)) ||
-        (resource.data.visibility == 'us' && resource.data.targetUid == request.auth.uid && isFriend(request.auth.uid, resource.data.uid))
+        (resource.data.visibility == 'us' && resource.data.targetUid == request.auth.uid)
       );
     }
 
